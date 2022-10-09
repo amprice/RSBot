@@ -1,8 +1,11 @@
 import discord
 import os
 from env import getToken
+from botversion import getVersion
 
-client = discord.Client()
+softwareVersion = ""
+client = discord.Client(intents=discord.Intents.all())
+#client = discord.Client()
 
 @client.event
 async def on_ready():
@@ -17,8 +20,11 @@ async def on_message(message):
 	if message.content.startswith('$hello'):
 		await message.channel.send('Hello!')
 
+	if message.content.startswith('$ver'):
+		await message.channel.send(softwareVersion)
 
 #client.run(os.getenv('TOKEN'))
 print("Starting RSBot")
+softwareVersion = getVersion()
 client.run(getToken())
 

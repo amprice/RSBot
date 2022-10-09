@@ -3,7 +3,7 @@ import os
 token = ""
 
 def getToken():
-	fd = open(".env", "r")
+	fd = open(".environment", "r")
 
 	#count = 0
 	for line in fd:
