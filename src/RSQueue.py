@@ -15,9 +15,12 @@ class QueueStatus(Enum):
         QUEUE_FULL = 3,
         QUEUE_ERROR = 4
 
+STALE_QUEUE_PERIOD = 1 # mins
+STALE_REACT_TIMEOUT = 1 # mins
+
 class MemberInfo():
     def __init__(self, name : str, userId : int, queue : str, guildId : int = None):
-        
+        current_time = self.now()
         # Database Stored Information
         self.name : str = name
         self.userId : int = userId
@@ -27,14 +30,17 @@ class MemberInfo():
         self.databaseId = None
 
         self.queue = queue.__str__()
-        self.timeInQueue : datetime = self.now()
+        self.timeInQueue : datetime = current_time # for ease of testing
+        self.timeSinceLastQueueActivity : datetime = current_time # for ease of testing
+        self.isStalechecking = False
+        self.staleMessage = None
 
         self.db = Mongodb()
         self.db.setCollection('Account')
         self.searchKey = {'userId': self.userId}
         result = self.db.findRecord('Account', self.searchKey)
 
-                #initalise the queue
+        #initalise the queue
         if result == None:
             if self.userId != None and self.name != None:
                 upsert_result = self.db.updateOne('Account', 
@@ -81,6 +87,11 @@ class MemberInfo():
 
         return (upsert_result != None)
 
+    def refreshStaleStatus(self):
+        self.staleMessage = None
+        self.isStalechecking = False
+        self.timeSinceLastQueueActivity = self.now()
+        
     def now(self):
         return datetime.now()
 
@@ -186,6 +197,40 @@ class RSQueue:
             # queue full user not added
             return False
 
+    def getStaleMembers(self):
+        staleIds : typing.List[MemberInfo] = []
+
+        for user in self.members:
+            t = int((self.now() - user.timeSinceLastQueueActivity).total_seconds())
+            if (t >= STALE_QUEUE_PERIOD * 60) and user.isStalechecking == False:
+                # collect ids for stale check
+                staleIds.append(user)
+                user.isStalechecking = True
+                user.timeSinceLastQueueActivity = self.now() # advance time so we can timeout react message
+        
+        if (len(staleIds) == 0):
+            # Nothing Stale
+            return None
+
+        return staleIds
+    
+    def getStaleMembersWhoTimedOut(self):
+        staleIds : typing.List[MemberInfo] = []
+
+        for user in self.members:
+            t = int((self.now() - user.timeSinceLastQueueActivity).total_seconds())
+            if (t >= STALE_REACT_TIMEOUT * 60) and user.isStalechecking == True:
+                # collect ids for who timed out
+                staleIds.append(user)
+                user.isStalechecking = False
+                user.timeSinceLastQueueActivity = self.now() # advance time so we can timeout react message
+        
+        if (len(staleIds) == 0):
+            # None timedout Stale
+            return None
+
+        return staleIds
+
     def getQueueMemberIds(self):
         names = []
         for name in self.members:
@@ -196,10 +241,12 @@ class RSQueue:
         for member in self.members:
             member.addRun()
             member.UpdateUserRecordInDatabase()
-        
+            self.UpdateQueueConfigRecordInDatabase()
+            
         self.members = []
         self.size = 0
         self.refreshLastQueuePrint()
+        self.qRuns += 1
 
     def checkStartQueue(self):
         if self.size == 4:

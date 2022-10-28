@@ -119,6 +119,96 @@ def testdata(monkeypatch):
 
 	return td
 
+UserData = collections.namedtuple(
+	"UserData", 
+		['queueId',
+		 'userName1', 
+		 'uId1', 
+		 'userName2', 
+		 'uId2', 
+		 'userName3', 
+		 'uId3', 
+		 'userName4', 
+		 'uId4', 
+		 'userName5', 
+		 'uId5', 
+		 'expectedFixDataTime1', 
+		 'expectedFixDataTime2', 
+		 'mock_MemberInfo_now', 
+		 'mock_RSQueue_now',
+		 'expectedRecord1_Account',
+		 'expectedRecordToRequestForUpsert_Account',
+		 'runs'
+		 ])
+
+@pytest.fixture()
+def userTestData(monkeypatch):
+	userName1 = "SomeName"
+	uId1 = 11223344
+	userName2 = "Lord"
+	uId2 = 11223355
+	userName3 = "SomeName"	# although confusing user alias could be same?
+	uId3 = 11223366
+	userName4 = "SomeName4"
+	uId4 = 11223377
+	userName4 = "SomeName4"
+	uId4 = 11223377
+	userName5 = "SomeName5"
+	uId5 = 11223388
+
+	databaseId1 = 111111111231
+	guildId = 1234
+	queueId = 7
+	userId = 3432452
+	userName = 'Jesus'
+	runs = {'7':55, '8':1}
+
+	expectedRecord1_Account = {
+		'_id': databaseId1, 
+	    'userId' : uId1,
+	    'userName' : userName1,
+	    'guildId' : guildId,
+	    'runs' : runs}
+
+
+	expectedRecordToRequestForUpsert_Account = {
+        'userId' : uId1,
+        'userName' : userName1,
+        'guildId' : guildId,
+        'runs' : runs}
+
+	expectedFixDataTime1 : datetime = datetime(year=2022, month=10, day=25, hour=14, minute=10, second=40)
+	expectedFixDataTime2 : datetime = datetime(year=2022, month=10, day=25, hour=14, minute=10, second=45)
+
+	mock_MemberInfo_now = MagicMock(return_value=expectedFixDataTime1)
+	monkeypatch.setattr(MemberInfo, 'now', mock_MemberInfo_now)
+	
+	mock_RSQueue_now = MagicMock(return_value=expectedFixDataTime1)
+	monkeypatch.setattr(RSQueue, 'now', mock_RSQueue_now)
+
+	data = UserData(
+			queueId, 
+			userName1, 
+			uId1, 
+			userName2, 
+			uId2, 
+			userName3, 
+			uId3, 
+			userName4, 
+			uId4, 
+			userName5, 
+			uId5, 
+			expectedFixDataTime1, 
+			expectedFixDataTime2, 
+			mock_MemberInfo_now, 
+			mock_RSQueue_now, 
+			expectedRecord1_Account,
+			expectedRecordToRequestForUpsert_Account,
+			runs)
+
+	return data
+
+
 def test_constructionWithArguments(testdata):
 	
 	q = RSQueue(guildId=testdata.guildId, 
@@ -215,94 +305,6 @@ def test_realUpdateOne():
 			channelId=channelId,
 			refreshRate=refreshRate)
 
-UserData = collections.namedtuple(
-	"UserData", 
-		['queueId',
-		 'userName1', 
-		 'uId1', 
-		 'userName2', 
-		 'uId2', 
-		 'userName3', 
-		 'uId3', 
-		 'userName4', 
-		 'uId4', 
-		 'userName5', 
-		 'uId5', 
-		 'expectedFixDataTime1', 
-		 'expectedFixDataTime2', 
-		 'mock_MemberInfo_now', 
-		 'mock_RSQueue_now',
-		 'expectedRecord1_Account',
-		 'expectedRecordToRequestForUpsert_Account',
-		 'runs'
-		 ])
-
-@pytest.fixture()
-def userTestData(monkeypatch):
-	userName1 = "SomeName"
-	uId1 = 11223344
-	userName2 = "Lord"
-	uId2 = 11223355
-	userName3 = "SomeName"	# although confusing user alias could be same?
-	uId3 = 11223366
-	userName4 = "SomeName4"
-	uId4 = 11223377
-	userName4 = "SomeName4"
-	uId4 = 11223377
-	userName5 = "SomeName5"
-	uId5 = 11223388
-
-	databaseId1 = 111111111231
-	guildId = 1234
-	queueId = 7
-	userId = 3432452
-	userName = 'Jesus'
-	runs = {'7':55, '8':1}
-
-	expectedRecord1_Account = {
-		'_id': databaseId1, 
-	    'userId' : uId1,
-	    'userName' : userName1,
-	    'guildId' : guildId,
-	    'runs' : runs}
-
-
-	expectedRecordToRequestForUpsert_Account = {
-        'userId' : uId1,
-        'userName' : userName1,
-        'guildId' : guildId,
-        'runs' : runs}
-
-	expectedFixDataTime1 : datetime = datetime(year=2022, month=10, day=25, hour=14, minute=10, second=40)
-	expectedFixDataTime2 : datetime = datetime(year=2022, month=10, day=25, hour=14, minute=10, second=45)
-
-	mock_MemberInfo_now = MagicMock(return_value=expectedFixDataTime1)
-	monkeypatch.setattr(MemberInfo, 'now', mock_MemberInfo_now)
-	
-	mock_RSQueue_now = MagicMock(return_value=expectedFixDataTime1)
-	monkeypatch.setattr(RSQueue, 'now', mock_RSQueue_now)
-
-	data = UserData(
-			queueId, 
-			userName1, 
-			uId1, 
-			userName2, 
-			uId2, 
-			userName3, 
-			uId3, 
-			userName4, 
-			uId4, 
-			userName5, 
-			uId5, 
-			expectedFixDataTime1, 
-			expectedFixDataTime2, 
-			mock_MemberInfo_now, 
-			mock_RSQueue_now, 
-			expectedRecord1_Account,
-			expectedRecordToRequestForUpsert_Account,
-			runs)
-
-	return data
 
 def test_adduser_basicAdd(testdata, userTestData):
 
@@ -602,3 +604,122 @@ def test_startQueue_OneUsers(testdata, userTestData):
 	assert len(q.members) == 0
 	assert q.size == 0
 
+def test_getStaleMembers_NoStaleUsers(testdata, userTestData):
+	testdata.mockDb.findRecord.side_effect = [testdata.expectedRecord_QueueCfg, None, None, None, None]
+
+	q = RSQueue(queueId=testdata.queueId)
+	assert q.addUser(userId=userTestData.uId1, userName=userTestData.userName1) == True
+	assert q.addUser(userId=userTestData.uId2, userName=userTestData.userName2) == True
+	assert q.addUser(userId=userTestData.uId3, userName=userTestData.userName3) == True
+	assert q.addUser(userId=userTestData.uId4, userName=userTestData.userName4) == True
+	assert len(q.members) == 4
+
+	# method under test
+	stale_members = q.getStaleMembers()
+
+	assert(stale_members == None)
+
+
+def test_getStaleMembers_OneStaleUser(testdata, userTestData):
+
+	timeJoinedQueue : datetime = datetime(year=2022, month=10, day=25, hour=14, minute=10, second=0)
+	timeNow : datetime = 		 datetime(year=2022, month=10, day=25, hour=14, minute=25, second=0)
+
+	mock = MagicMock()
+	mock.STALE_QUEUE_PERIOD = 15
+	userTestData.mock_MemberInfo_now.side_effect = [timeNow, timeNow, timeJoinedQueue, timeNow, timeNow]
+	userTestData.mock_RSQueue_now.side_effect = [timeNow, timeNow, timeNow, timeNow, timeNow, timeNow]
+
+	testdata.mockDb.findRecord.side_effect = [testdata.expectedRecord_QueueCfg, None, None, None, None]
+
+	q = RSQueue(queueId=testdata.queueId)
+	assert q.addUser(userId=userTestData.uId1, userName=userTestData.userName1) == True
+	assert q.addUser(userId=userTestData.uId2, userName=userTestData.userName2) == True
+	assert q.addUser(userId=userTestData.uId3, userName=userTestData.userName3) == True
+	assert q.addUser(userId=userTestData.uId4, userName=userTestData.userName4) == True
+	assert len(q.members) == 4
+
+	#q.members[2].isStalechecking = False
+	#q.members[2].timeSinceLastQueueActivity = timeJoinedQueue
+	# method under test
+	stale_members = q.getStaleMembers()
+
+	assert q.members[0].isStalechecking == False
+	assert q.members[1].isStalechecking == False
+	assert q.members[2].isStalechecking == True
+	assert q.members[3].isStalechecking == False
+
+	assert q.members[2].timeSinceLastQueueActivity == timeNow
+	assert(len(stale_members) == 1)
+	assert userTestData.uId3 == q.members[2].userId 
+
+def test_getStaleMembers_TwoStaleUser(testdata, userTestData):
+
+	timeJoinedQueue : datetime = datetime(year=2022, month=10, day=25, hour=14, minute=10, second=0)
+	timeNow : datetime = 		 datetime(year=2022, month=10, day=25, hour=14, minute=25, second=0)
+
+	mock = MagicMock()
+	mock.STALE_QUEUE_PERIOD = 15
+	userTestData.mock_MemberInfo_now.side_effect = [timeNow, timeJoinedQueue, timeJoinedQueue, timeNow, timeNow]
+	userTestData.mock_RSQueue_now.side_effect = [timeNow, timeNow, timeNow, timeNow, timeNow, timeNow, timeNow]
+
+	testdata.mockDb.findRecord.side_effect = [testdata.expectedRecord_QueueCfg, None, None, None, None]
+
+	q = RSQueue(queueId=testdata.queueId)
+	assert q.addUser(userId=userTestData.uId1, userName=userTestData.userName1) == True
+	assert q.addUser(userId=userTestData.uId2, userName=userTestData.userName2) == True
+	assert q.addUser(userId=userTestData.uId3, userName=userTestData.userName3) == True
+	assert q.addUser(userId=userTestData.uId4, userName=userTestData.userName4) == True
+	assert len(q.members) == 4
+
+	#q.members[2].isStalechecking = False
+	#q.members[2].timeSinceLastQueueActivity = timeJoinedQueue
+	# method under test
+	stale_members = q.getStaleMembers()
+
+	assert q.members[0].isStalechecking == False
+	assert q.members[1].isStalechecking == True
+	assert q.members[2].isStalechecking == True
+	assert q.members[3].isStalechecking == False
+
+	assert(len(stale_members) == 2)
+	assert q.members[1].timeSinceLastQueueActivity == timeNow
+	assert q.members[2].timeSinceLastQueueActivity == timeNow
+	assert userTestData.uId2 == q.members[1].userId 
+	assert userTestData.uId3 == q.members[2].userId 
+
+def test_getStaleMembersWithTimout_OneStaleUser(testdata, userTestData):
+
+	timeJoinedQueue : datetime = 	    datetime(year=2022, month=10, day=25, hour=14, minute=10, second=0)
+	timeNow : datetime = 		 	    datetime(year=2022, month=10, day=25, hour=14, minute=25, second=0)
+	timeExpireTimeoutWidow : datetime = datetime(year=2022, month=10, day=25, hour=14, minute=30, second=0)
+	mock = MagicMock()
+	mock.STALE_QUEUE_PERIOD = 15
+	userTestData.mock_MemberInfo_now.side_effect = [timeNow, timeNow, timeNow, timeNow, timeNow]
+	userTestData.mock_RSQueue_now.side_effect = [timeNow, timeNow, timeNow, timeExpireTimeoutWidow, timeNow, timeNow]
+
+	testdata.mockDb.findRecord.side_effect = [testdata.expectedRecord_QueueCfg, None, None, None, None]
+
+	q = RSQueue(queueId=testdata.queueId)
+	assert q.addUser(userId=userTestData.uId1, userName=userTestData.userName1) == True
+	assert q.addUser(userId=userTestData.uId2, userName=userTestData.userName2) == True
+	assert q.addUser(userId=userTestData.uId3, userName=userTestData.userName3) == True
+	assert q.addUser(userId=userTestData.uId4, userName=userTestData.userName4) == True
+	assert len(q.members) == 4
+
+	q.members[0].isStalechecking = False
+	q.members[1].isStalechecking = False
+	q.members[2].isStalechecking = True
+	q.members[3].isStalechecking = False
+
+	# method under test
+	stale_members = q.getStaleMembersWhoTimedOut()
+
+	assert q.members[0].isStalechecking == False
+	assert q.members[1].isStalechecking == False
+	assert q.members[2].isStalechecking == False
+	assert q.members[3].isStalechecking == False
+
+	assert(len(stale_members) == 1)
+	assert q.members[2].timeSinceLastQueueActivity == timeNow
+	assert userTestData.uId3 == q.members[2].userId 

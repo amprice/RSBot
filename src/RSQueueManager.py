@@ -1,19 +1,20 @@
 import asyncio
-from contextvars import Context
+# from contextvars import Context
 from email import message
+from http import client
 from inspect import _ParameterKind
-from multiprocessing import context
+# from multiprocessing import context
 from tracemalloc import start
 from unicodedata import name
 import discord
-from discord import User, Member, DMChannel
+from discord import User, Member, DMChannel, Reaction
 from discord.ext import commands, tasks
-
+from datetime import datetime
 from mongodb import Mongodb
 import pprint
 from enum import Enum
 import typing
-from RSQueue import RSQueue
+from RSQueue import MemberInfo, RSQueue
 from typing import Dict
 
 emoji : Dict[str, str] = {
@@ -43,6 +44,16 @@ emoji : Dict[str, str] = {
      "upvote" : "👍",
      "downvote" : "👎"
 }
+
+class PrivateMessage():
+
+    def __init__(self, message : discord.Message, userId : int, queue : RSQueue, memInfo : MemberInfo) -> None:
+        self.message : discord.Message = message
+        self.userId = userId
+        self.queue = queue
+        self.memeberInfo = memInfo
+
+    
 class RSQueueManager(commands.Cog):
     """string A"""
 
@@ -55,8 +66,6 @@ class RSQueueManager(commands.Cog):
         10 : None,
         11 : None
     }
-    # async def invoke_after(self, ctx : commands.context):
-    #     self.queueCheck.start()
 
     def __init__(self, bot : commands.Bot):
         self.bot : commands.Bot = bot
@@ -65,8 +74,60 @@ class RSQueueManager(commands.Cog):
             q = RSQueue(queueId=key)
             if q.name != None:
                 RSQueueManager.qs[key] = q
+        
+        self.privateMessages : typing.List[PrivateMessage] = []
 
-        # self.cog_after_invoke(self.invoke_after)
+    async def handelReaction(self, reaction : Reaction, user : User):
+        print ('handleReaction')
+        
+        #private channel reactions
+        for h in self.privateMessages:
+            if h.memeberInfo.userId == user.id:
+                if (h.message.content == reaction.message.content):
+                    #check which emoji clicked
+                    guild = self.bot.get_guild(h.queue.guildId)
+                    channel = guild.get_channel(h.queue.channelId)
+                    if reaction.emoji == '✅':
+                        msg = h.message
+                        memeber : discord.Member = msg.author
+                        # await msg.remove_reaction(emoji='✅', member=memeber)
+                        # await msg.remove_reaction(emoji='❎', member=memeber)
+                        #await msg.clear_reactions() 
+                        await msg.channel.send (f"**You have choosen to remain in the {h.queue.name}**.\n" + 
+                                                f"Thankyou for your response {guild.get_member(h.userId).mention}.\n")
+                        await msg.delete()
+                        # accept stay in queue
+                        # 1. update user timout update to now()
+                        h.memeberInfo.refreshStaleStatus()
+
+                        # 2. remove message from handler message list
+                        self.privateMessages.remove(h)
+
+                    elif reaction.emoji == '❎':
+                        msg = h.message
+                        memeber : discord.Member = msg.author
+                        # await msg.remove_reaction(emoji='✅', member=memeber)
+                        # await msg.remove_reaction(emoji='❎', member=memeber)
+                        #await msg.clear_reactions()
+                        await msg.delete()
+                        await msg.channel.send(f"**You have been removed from the {h.queue.name}**\n" +
+                                               f"Thankyou for your response {guild.get_member(h.userId).mention}.\n")
+                        await channel.send(f"{guild.get_member(h.userId).mention} has timed out and selected to leave {h.queue.name}")
+                        # reject leave queue
+                        h.queue.delUser(user.name, user.id)
+                        await self.sendQueueStatus(h.queue, True)
+
+                        self.privateMessages.remove(h)
+                        
+    async def sendQueueStatus(self, q, isEditMessage : bool = False):
+        q.printMembers() #debug maybe convert to log
+        guild = self.bot.get_guild(q.guildId)
+        channel = guild.get_channel(q.channelId)
+        emb = self.buildQueueEmbed(guild, q)
+        if isEditMessage:
+            q.lastQueueMessage = await q.lastQueueMessage.edit(embed=emb)
+        else:
+            q.lastQueueMessage = await channel.send(embed=emb)
 
     @commands.command()
     async def hi(self, ctx : commands.Context, *args, **kwargs):
@@ -361,6 +422,79 @@ class RSQueueManager(commands.Cog):
             qEmbed = self.printQueueEmbed(ctx)
             await ctx.channel.send(embed=qEmbed[0])
 
+    # Run Loop Activity Methods
+    async def QueueRefreshToChannel(self, q : RSQueue):
+        # Check to see if we need to print new queue information to channel based on timeout peroid since last queue update
+        if (q.isTimeToPrintQueue()): #and q.size != 0):
+            guild = self.bot.get_guild(q.guildId)
+            channel = guild.get_channel(q.channelId)
+            emb = self.buildQueueEmbed(guild, q)
+            if q.lastQueueMessage == None:
+                q.lastQueueMessage = await channel.send(embed=emb)
+            else:
+                q.lastQueueMessage = await q.lastQueueMessage.edit(embed=emb)
+            return True
+        return False
+
+    async def CheckForStaleMembers(self, q : RSQueue):
+        staleMembers = q.getStaleMembers()
+        if (staleMembers != None):
+            # we potentially have stale members test them with DM message with react emojis
+            guild = self.bot.get_guild(q.guildId)
+            channel = guild.get_channel(q.channelId)
+            
+            for user in staleMembers:
+                # build stale embed message
+                emb = self.buildStaleEmbed(guild, q, user)
+                m : Member = guild.get_member(user.userId)
+                await m.create_dm() #private DM channel with potentially stale member
+
+                msg = await m.send(embed=emb)
+                await msg.add_reaction('✅')
+                await msg.add_reaction('❎')
+                self.privateMessages.append(PrivateMessage(msg, user.userId, q, user)) # refactor out user.userId since its already in user 4th param
+
+                return True;
+        else:
+            return False
+
+    async def CheckForStaleTimedOutMembers(self, q : RSQueue):
+        staleMembers = q.getStaleMembersWhoTimedOut()
+        guild = self.bot.get_guild(q.guildId)
+        channel = guild.get_channel(q.channelId)
+        if (staleMembers != None):
+            # we have timedout users so remove them from the queue
+            for userId in staleMembers:
+                # 0. get stale memeber message
+                m = None
+                for message in self.privateMessages:
+                    if message.userId == userId.userId:
+                        # we found the message and user who have timed out
+                        # 1. remove react emoji's 
+                        msg = message.message
+                        memeber = guild.get_member(msg.author.id)
+                        await msg.remove_reaction(emoji='✅', member=memeber)
+                        await msg.remove_reaction(emoji='❎', member=memeber)
+                    
+                        # 3. Send Timeout message to user & channel
+                        await msg.channel.send(f"You have be removed from the **{q.name}** due to acitivty timeout.\n\n" +
+                                            f"Please rejoin {q.name} in {channel.mention} if interested to run.\n")
+                        await channel.send(f"{guild.get_member(message.userId).mention} has timed out and been removed from {q.name}")
+
+                        # 5. Remove User from the queue
+                        if (q.delUser(userName=userId.name, userId=userId.userId)):
+                            # print updates queue status and ensure lastPrint timestamp is refreshed as to not spam the channel
+                            await self.sendQueueStatus(q, True)
+                            # q.printMembers() #debug maybe convert to log
+                            # guild = self.bot.get_guild(q.guildId)
+                            # channel = guild.get_channel(q.channelId)
+                            # emb = self.buildQueueEmbed(guild, q)
+                            # q.lastQueueMessage = await channel.send(embed=emb)
+                        # 4. Remove stale react message from list                        
+                        self.privateMessages.remove(message) 
+
+                        return True   
+        return False
 
     @tasks.loop(seconds=10.0)
     async def queueCheck(self):
@@ -372,15 +506,38 @@ class RSQueueManager(commands.Cog):
         for key in RSQueueManager.qs.keys():
             if RSQueueManager.qs[key] != None:
                 q = RSQueueManager.qs[key]
-                if (q.isTimeToPrintQueue()): #and q.size != 0):
-                    guild = self.bot.get_guild(q.guildId)
-                    channel = guild.get_channel(q.channelId)
-                    emb = self.buildQueueEmbed(guild, q)
-                    if q.lastQueueMessage == None:
-                        q.lastQueueMessage = await channel.send(embed=emb)
-                    else:
-                        q.lastQueueMessage = await q.lastQueueMessage.edit(embed=emb)
 
+                if (await self.QueueRefreshToChannel(q)):
+                    pass
+                elif (await self.CheckForStaleMembers(q)):# check for stale queue members 
+                    pass
+                elif (await self.CheckForStaleTimedOutMembers(q)): # check for stale queue message timeouts (5 min?)
+                    pass
+             
+                 
+                
+                
+                       
+                        
+
+    def buildStaleEmbed(self, guild : discord.Guild, queue : RSQueue, user : MemberInfo):
+        timeInQueue : int = int((datetime.now() - user.timeInQueue).total_seconds() / 60)
+        emb = discord.Embed(title=f"<:redstar:1032938394562613248> {queue.name} Check",
+                      description=f"You have been in the queue for {timeInQueue} min.\n\n",
+                                  color=discord.Color.magenta())
+        emb.add_field(value = queue.buildUserStrings(queue.queueId),
+                          name = '\u200b',
+                          inline=False)
+        emb.add_field(value = f"There are **{queue.size-1} other members** in your queue!\n\n"
+                              f"**Do you want to remain in queue?**\n\n" +
+                              f"Please click emoji ✅ to stay or ❎ to leave.\n" +
+                              f"Note: This Message with timeout in 5 min and you will be automatically removed from the queue.",
+                              name = '\u200b',
+                              inline=False)
+        emb.set_footer(text=f"Run ID: {queue.qRuns}", icon_url=None)
+
+        emb.set_thumbnail(url=guild.icon.url)
+        return emb
 
     def buildQueueEmbed(self, guild : discord.Guild, queue : RSQueue):
         queue.refreshLastQueuePrint()
@@ -388,7 +545,7 @@ class RSQueueManager(commands.Cog):
             description=f"Use command **-i {queue.queueId}** to join queue and **-o {queue.queueId}** to leave queue\n", #+
                 #f"e.g. **-i {queue.queueId}** or **-o {queue.queueId}** \n",
             color=discord.Color.dark_blue())
-        emb.set_footer(text="Run ID: TBD", icon_url=None)
+        emb.set_footer(text=f"Run ID: {queue.qRuns}", icon_url=None)
 
         emb.set_thumbnail(url=guild.icon.url)
 
@@ -499,7 +656,7 @@ class RSQueueManager(commands.Cog):
 # Refresh Queue
 
 async def setup(bot : commands.bot):
-    print ("Adding ext")
+    print ("Adding RSQueueManager")
     await bot.add_cog(RSQueueManager(bot))
 
     #RSQueueManager.queueCheck.start()
