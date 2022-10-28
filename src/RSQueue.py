@@ -167,6 +167,16 @@ class RSQueue:
             self.qRuns = result['qRuns']
 
         #self.th.start()
+    def UpdateQueueConfigRecordInDatabase(self):
+        upsert_result = None
+
+        # current private data valid if we have database Id Key then update record
+        if (self.databaseId != None):
+            upsert_result = self.db.updateOne('QueueCfg', 
+                    {'_id': self.databaseId}, 
+                        {'qRuns' : self.qRuns})
+
+        return (upsert_result != None)
 
     def delUser(self, userName, userId):
         if len(self.members) > 0: # might not need this if - write unit test
@@ -241,12 +251,13 @@ class RSQueue:
         for member in self.members:
             member.addRun()
             member.UpdateUserRecordInDatabase()
-            self.UpdateQueueConfigRecordInDatabase()
+            
             
         self.members = []
         self.size = 0
         self.refreshLastQueuePrint()
         self.qRuns += 1
+        self.UpdateQueueConfigRecordInDatabase()
 
     def checkStartQueue(self):
         if self.size == 4:
