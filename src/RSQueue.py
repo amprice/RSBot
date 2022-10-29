@@ -308,7 +308,7 @@ class RSQueue:
     def isTimeToPrintQueue(self):
         delta = (self.now() - self.lastQueuePrint).total_seconds()
 
-        print (f'{delta} {self.refreshRate * 60} Time Now: {self.now()} Last Print: {self.lastQueuePrint}')
+        # TODO turn into a debug message in logger #print (f'{delta} {self.refreshRate * 60} Time Now: {self.now()} Last Print: {self.lastQueuePrint}')
         if (delta >= float(self.refreshRate) * 60):
             self.lastQueuePrint = self.now()
             return True
