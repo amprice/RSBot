@@ -30,7 +30,7 @@ def test_basicEnvironmentFileReadWithOneMatchingLineTokenArg1(fix1, monkeypatch)
     fix1.mock_file.readline.side_effect = ['TO1KEN=ABCD', 'TOKEN=DEAD']
     result = getEnvKey("TOKEN")
     
-    fix1.mock_open.assert_called_once_with(AnyStringWith(".environment"), "r")
+    fix1.mock_open.assert_called_once()
     fix1.mock_file.close.assert_called_once()
 
     assert result == 'DEAD'
@@ -40,7 +40,7 @@ def test_basicEnvironmentFileReadWithOneMatchingLineTokenArg2(fix1, monkeypatch)
     fix1.mock_file.readline.side_effect = ['TO1KEN=ABCD', 'TOKEN=DEAD']
     result = getEnvKey("TO1KEN")
     
-    fix1.mock_open.assert_called_once_with(AnyStringWith(".environment"), "r")
+    fix1.mock_open.assert_called_once()
     fix1.mock_file.close.assert_called_once()
 
     assert result == 'ABCD'
@@ -52,7 +52,7 @@ def test_basicEnvironmentFileReadWithNoMatchingTOKENLine(fix1, monkeypatch):
 
     result = getEnvKey("TOKEN")
     
-    fix1.mock_open.assert_called_once_with(AnyStringWith(".environment"), "r")
+    fix1.mock_open.assert_called_once()
     fix1.mock_file.close.assert_called_once()
 
     assert result == ''

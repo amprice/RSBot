@@ -21,6 +21,7 @@ class AnyStringWith(str):
     def __eq__(self, other):
         return self in other
 
+# TODO: Establish Setup / Teardown for tests.....and clean up with fixtures
 class handelReactionTestDataAndMocks():
 
 	def __init__(self, mp) -> None:
@@ -100,7 +101,7 @@ class handelReactionTestDataAndMocks():
 		self.user_mock = MagicMock(spec=discord.User)
 		self.user_mock.dm_channel = self.reaction_mock.message.channel
 
-
+	
 @pytest.mark.asyncio
 async def test_listQueueConfigCommandWithAllQueuesNone(monkeypatch):
 	
@@ -129,6 +130,8 @@ async def test_listQueueConfigCommandWithAllQueuesNone(monkeypatch):
 	
 	emb_mock.add_field.assert_has_calls(calls=calls, any_order=False)
 	
+	qm.queueCheck.cancel()
+ 
 @pytest.mark.asyncio
 async def test_listQueueConfigCommandWithOneQueueConfigured(monkeypatch):
 	
@@ -189,7 +192,8 @@ async def test_listQueueConfigCommandWithOneQueueConfigured(monkeypatch):
 
 	emb_mock.add_field.assert_has_calls(calls=calls, any_order=False)
 	
-
+	qm.queueCheck.cancel()
+ 
 @pytest.mark.asyncio
 async def test_connectCommand(monkeypatch):
 	
@@ -224,6 +228,8 @@ async def test_connectCommand(monkeypatch):
 	
 	pprint.pprint (qm.qs)
 	print(f"{qm.qs[8].databaseId}")
+ 
+	qm.queueCheck.cancel()
 
 @pytest.mark.asyncio
 async def test_startQ_QueueStartCommand(monkeypatch):
@@ -270,6 +276,8 @@ async def test_startQ_QueueStartCommand(monkeypatch):
 
 	# method under test
 	await qm.startq(qm, context_mock, "11")
+ 
+	qm.queueCheck.cancel()
 
 @pytest.mark.asyncio
 async def test_buildStaleEmbed(monkeypatch):
@@ -327,8 +335,7 @@ async def test_buildStaleEmbed(monkeypatch):
 	assert result.title == AnyStringWith("Check")
 	assert result.color == discord.Color.magenta()
 
-
-
+	qm.queueCheck.cancel()
 
 @pytest.mark.asyncio
 async def test_CheckForStaleMembers_OneStaleMember(monkeypatch):
@@ -397,7 +404,7 @@ async def test_CheckForStaleMembers_OneStaleMember(monkeypatch):
 	message_mock.add_reaction.assert_has_calls(calls=calls, any_order=True)
 
 
-
+	qm.queueCheck.cancel()
 
 @pytest.mark.asyncio
 async def test_CheckForStaleMembers_OneStaleMemberTimedOut(monkeypatch):
@@ -488,6 +495,7 @@ async def test_CheckForStaleMembers_OneStaleMemberTimedOut(monkeypatch):
 	#	1.delete users from RSQueue
     #	2.update queue status to channel
 
+	qm.queueCheck.cancel()
  
 @pytest.fixture()
 def handelReactionFixure(monkeypatch):
@@ -528,7 +536,8 @@ async def test_handelReactionWithReactionForSomethingElseNotMatchingStaleUser(ha
 	assert qm.qs[11].members[0] == td.expected_memInfo #this should be the stale message
 	assert qm.qs[11].members[0].timeSinceLastQueueActivity == td.timeNow
 
-
+	qm.queueCheck.cancel()
+ 
 @pytest.mark.asyncio
 async def test_handelReactionWithMatchingStaleUserId(handelReactionFixure):
 	
@@ -562,6 +571,8 @@ async def test_handelReactionWithMatchingStaleUserId(handelReactionFixure):
 	assert qm.qs[11].members[0] == td.expected_memInfo #this should be the stale message
 	assert qm.qs[11].members[0].timeSinceLastQueueActivity == td.timeNow
 
+	qm.queueCheck.cancel()
+ 
 @pytest.mark.asyncio
 async def test_handelReactionWithMatchingStaleUserIdAndTickEmojiClicked(handelReactionFixure):
 	
@@ -597,3 +608,5 @@ async def test_handelReactionWithMatchingStaleUserIdAndTickEmojiClicked(handelRe
 	assert qm.qs[11].members[0] == td.expected_memInfo
 	assert qm.qs[11].members[0].isStalechecking == False
 	assert qm.qs[11].members[0].timeSinceLastQueueActivity == td.timeNow
+	
+	qm.queueCheck.cancel()
