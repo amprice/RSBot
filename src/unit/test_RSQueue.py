@@ -626,7 +626,7 @@ def test_getStaleMembers_NoStaleUsers(testdata, userTestData):
 def test_getStaleMembers_OneStaleUser(testdata, userTestData):
 
 	timeJoinedQueue : datetime = datetime(year=2022, month=10, day=25, hour=14, minute=10, second=0)
-	timeNow : datetime = 		 datetime(year=2022, month=10, day=25, hour=14, minute=25, second=0)
+	timeNow : datetime = 		 datetime(year=2022, month=10, day=25, hour=14, minute=40, second=0)
 
 	mock = MagicMock()
 	mock.STALE_QUEUE_PERIOD = 15
@@ -659,7 +659,7 @@ def test_getStaleMembers_OneStaleUser(testdata, userTestData):
 def test_getStaleMembers_TwoStaleUser(testdata, userTestData):
 
 	timeJoinedQueue : datetime = datetime(year=2022, month=10, day=25, hour=14, minute=10, second=0)
-	timeNow : datetime = 		 datetime(year=2022, month=10, day=25, hour=14, minute=25, second=0)
+	timeNow : datetime = 		 datetime(year=2022, month=10, day=25, hour=14, minute=40, second=0)
 
 	mock = MagicMock()
 	mock.STALE_QUEUE_PERIOD = 15
