@@ -1,11 +1,43 @@
 {
+    "version": "7.1.3",
     "configurations": [
+        {
+            "name": "Python: RSBOT",
+            "type": "python",
+            "request": "launch",
+            "program": "c:\\_Development\\RSBot\\src\\RSBot.py",
+            "console": "integratedTerminal",
+            "justMyCode": true
+        },
         {
             "name": "Python: File",
             "type": "python",
             "request": "launch",
             "program": "${file}",
-            "justMyCode": true
+            "cwd": "${fileDirname}",
+            "args": [
+                "-o"
+            ]
+        },
+        {
+            "name": "Python: Current File (Integrated Terminal)",
+            "type": "python",
+            "request": "launch",
+            "program": "${file}",
+            "console": "integratedTerminal",
+            "cwd": "${fileDirname}"
+        },
+        {
+            "name": "Python: Debug Tests",
+            "type": "python",
+            "request": "launch",
+            "program": "${file}",
+            "purpose": [
+                "debug-test"
+            ],
+            "console": "integratedTerminal",
+            "justMyCode": false,
+            "cwd": "${fileDirname}"
         }
     ]
 }
