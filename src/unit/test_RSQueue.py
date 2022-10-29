@@ -1,7 +1,7 @@
 from datetime import datetime, timedelta
 from pprint import pprint
 import pytest
-from unittest.mock import MagicMock, mock_open, patch
+from unittest.mock import MagicMock, mock_open, patch, call
 import collections
 
 import sys
@@ -573,10 +573,8 @@ def test_startQueue_OneUsers(testdata, userTestData):
 	#queue_td = testdata
 	user_td = userTestData
 
-	# for i in range(len(self.members)):
-	# time_float = (self.now() - self.members[i].timeInQueue).total_seconds() / 60
-	# time = int(time_float)
-	# usersStrings += f"{i+1}. `{self.members[i].name}` [{self.members[i].runs} runs] 🕒 {time} min\n"
+	expectedSearchKey_UpdateQueueConfig = {'_id': testdata.databaseId}
+ 
 	time = 2
 	i = 0
 	expectedString = f'{i+1}. `{user_td.userName1}` [{user_td.runs[user_td.queueId.__str__()]} runs] 🕒 {time} min\n'
@@ -598,8 +596,13 @@ def test_startQueue_OneUsers(testdata, userTestData):
 
 	q.startqueue()
 
-	testdata.mockDb.updateOne.assert_called_once_with("Account", testdata.expectedSearchKey_AccountRecord, user_td.expectedRecordToRequestForUpsert_Account)
-
+	updateOneCalls = [call("Account", testdata.expectedSearchKey_AccountRecord, user_td.expectedRecordToRequestForUpsert_Account),
+			 call("QueueCfg", expectedSearchKey_UpdateQueueConfig, {'qRuns' : 1})]
+	
+	#message_mock.remove_reaction.assert_has_calls(calls=calls, any_order=False)
+	
+ 	#testdata.mockDb.updateOne.assert_called_once_with("Account", testdata.expectedSearchKey_AccountRecord, user_td.expectedRecordToRequestForUpsert_Account)
+	testdata.mockDb.updateOne.assert_has_calls(calls=updateOneCalls, any_order=True)
 
 	assert len(q.members) == 0
 	assert q.size == 0

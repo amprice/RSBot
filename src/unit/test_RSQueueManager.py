@@ -21,6 +21,86 @@ class AnyStringWith(str):
     def __eq__(self, other):
         return self in other
 
+class handelReactionTestDataAndMocks():
+
+	def __init__(self, mp) -> None:
+		self.monkeypatch = mp
+		self.databaseId = 111122222
+		self.guildId = 2222222
+		self.queueName = "RS 11 Queue"
+		self.queueId = "11"
+		self.queueRole = "SomeRole"
+		self.queueRoleId = "444444"
+		self.channel = "#RS11"
+		self.channelId = "555555"
+		self.refreshRate = 15.0
+		# runs = 0
+		self.size = 4
+
+		self.staleMessageSentTime : datetime = datetime(year=2022, month=10, day=25, hour=14, minute=10, second=0) # Time activity check message sent to user
+		self.timeNow : datetime = datetime(year=2022, month=10, day=25, hour=14, minute=15, second=0) # time now setup to expire the message e.g. 5 min later
+
+		self.expected_dummy_string = 'Message from the bot that the user will react too.'
+		self.expected_memInfo = MemberInfo(name="Jesus", userId=10000, queue="RS11", guildId=1111)
+	
+		self.expected_members = [self.expected_memInfo]
+		self.expected_userId_stale_members = [self.expected_memInfo]
+	
+		self.mock_MemberInfo_now = MagicMock(return_value=self.staleMessageSentTime)
+		self.monkeypatch.setattr(MemberInfo, 'now', self.mock_MemberInfo_now)
+
+		self.message_mock = AsyncMock(spec=discord.Message)
+		self.message_mock.add_reaction = AsyncMock()
+		self.message_mock.remove_reaction = AsyncMock()
+		self.message_mock.channel = AsyncMock()
+		self.message_mock.channel.send = AsyncMock()
+		self.message_mock.content = self.expected_dummy_string
+		self.member_mock = MagicMock()
+		self.member_mock.create_dm = AsyncMock()
+		self.member_mock.send = AsyncMock(return_value=self.message_mock)
+	
+		self.context_mock = MagicMock(spec=commands.Context)
+		self.context_mock.author = MagicMock()
+		self.context_mock.author.name = 'Somebody'
+	
+		self.channel_mock = MagicMock()
+		self.channel_mock.send = AsyncMock(return_value=self.message_mock)
+	
+		self.guild_mock = MagicMock()
+		self.guild_mock.get_channel = MagicMock(return_value=self.channel_mock)
+		self.guild_mock.get_member = MagicMock(return_value=self.member_mock)
+	
+		self.bot_mock = MagicMock(spec=commands.Bot)
+		self.bot_mock.get_guild = MagicMock(return_value=self.guild_mock)
+	
+		self.rsqueue_mock = MagicMock(spec=RSQueue)
+		self.rsqueue_mock.databaseId = self.databaseId
+		self.rsqueue_mock.guildId = self.guildId
+		self.rsqueue_mock.name = self.queueName
+		self.rsqueue_mock.queueId = self.queueId
+		self.rsqueue_mock.role = self.queueRole
+		self.rsqueue_mock.roleId = self.queueRoleId
+		self.rsqueue_mock.channel = self.channel
+		self.rsqueue_mock.channelId = self.channelId
+		self.rsqueue_mock.refreshRate = self.refreshRate
+		self.rsqueue_mock.size = self.size
+		self.rsqueue_mock.members = self.expected_members
+		self.rsqueue_mock.getQueueMembers = MagicMock(return_value=self.expected_members)
+		self.rsqueue_mock.getStaleMembers = MagicMock(return_value=self.expected_members)
+		self.rsqueue_mock.getStaleMembersWhoTimedOut = MagicMock(return_value=self.expected_members)
+
+		self.expected_privateMessage = PrivateMessage(message=self.message_mock, userId=10000, queue=self.rsqueue_mock, memInfo=self.expected_memInfo)
+		self.expected_privateMessages = [self.expected_privateMessage]
+
+		self.reaction_mock = MagicMock(spec=discord.Reaction)
+		self.reaction_mock.message = MagicMock()
+		self.reaction_mock.message.channel = MagicMock()
+		self.reaction_mock.message.content = self.expected_dummy_string
+		self.reaction_mock.emoji = "" # simulate any emoji we are not looking for
+		self.user_mock = MagicMock(spec=discord.User)
+		self.user_mock.dm_channel = self.reaction_mock.message.channel
+
+
 @pytest.mark.asyncio
 async def test_listQueueConfigCommandWithAllQueuesNone(monkeypatch):
 	
@@ -37,7 +117,7 @@ async def test_listQueueConfigCommandWithAllQueuesNone(monkeypatch):
 
 	qm = RSQueueManager(bot_mock)
 
-	await qm.l(qm, context_mock, "queue_cfg", "foo", "bar")
+	await qm.listq(qm, context_mock, "queue_cfg", "foo", "bar")
 
 	calls = [call(name="RS5", value="Not Configured", inline=False),
 			 call(name="RS6", value="Not Configured", inline=False),
@@ -49,8 +129,6 @@ async def test_listQueueConfigCommandWithAllQueuesNone(monkeypatch):
 	
 	emb_mock.add_field.assert_has_calls(calls=calls, any_order=False)
 	
-	# assert 1==0
-
 @pytest.mark.asyncio
 async def test_listQueueConfigCommandWithOneQueueConfigured(monkeypatch):
 	
@@ -89,7 +167,7 @@ async def test_listQueueConfigCommandWithOneQueueConfigured(monkeypatch):
 	qm.qs[11] = rsqueue_mock
 
 	# method under test
-	await qm.l(qm, context_mock, "queue_cfg", "foo", "bar")
+	await qm.listq(qm, context_mock, "queue_cfg", "foo", "bar")
 
 	calls = [call(name="RS5", value="Not Configured", inline=False),
 			 call(name="RS6", value="Not Configured", inline=False),
@@ -111,7 +189,6 @@ async def test_listQueueConfigCommandWithOneQueueConfigured(monkeypatch):
 
 	emb_mock.add_field.assert_has_calls(calls=calls, any_order=False)
 	
-	# assert 1==0
 
 @pytest.mark.asyncio
 async def test_connectCommand(monkeypatch):
@@ -147,24 +224,9 @@ async def test_connectCommand(monkeypatch):
 	
 	pprint.pprint (qm.qs)
 	print(f"{qm.qs[8].databaseId}")
-	# for key in qm.qs.keys():
-	# 	assert
-	# level : int = int(args[0])
-	# name : str = args[1]
-	# role : str = args[2]
-	# refresh : int = int(args[3])
-
-# def dummyTest(*args):
-# 	print (*args)
-# 	print (args[1])
-
-# if __name__ == '__main__':
-
-# 	print ("abc", "123", "1111")
-# 	dummyTest("abc", "123", "1111")
 
 @pytest.mark.asyncio
-async def test_s_QueueStartCommand(monkeypatch):
+async def test_startQ_QueueStartCommand(monkeypatch):
 
 	databaseId = 111122222
 	guildId = 2222222
@@ -207,7 +269,7 @@ async def test_s_QueueStartCommand(monkeypatch):
 	qm.qs[11] = rsqueue_mock
 
 	# method under test
-	await qm.s(qm, context_mock, "11")
+	await qm.startq(qm, context_mock, "11")
 
 @pytest.mark.asyncio
 async def test_buildStaleEmbed(monkeypatch):
@@ -222,7 +284,7 @@ async def test_buildStaleEmbed(monkeypatch):
 	refreshRate = 15.0
 	# runs = 0
 	size = 4
-
+	expected_memInfo = MemberInfo(name="Jesus", userId=10000, queue="RS11", guildId=1111)
 	expected_members = ['Andrew', 'Paul', 'Peter', 'David']
 	context_mock = MagicMock(spec=commands.Context)
 	context_mock.author = MagicMock()
@@ -246,20 +308,23 @@ async def test_buildStaleEmbed(monkeypatch):
 	rsqueue_mock.channelId = channelId
 	rsqueue_mock.refreshRate = refreshRate
 	rsqueue_mock.size = size
+	rsqueue_mock.qRuns = 33
 	rsqueue_mock.members = MagicMock()
 	rsqueue_mock.getQueueMembers = MagicMock(return_value=expected_members)
 
+	guild_mock = MagicMock(spec=discord.Guild)
+ 
 	embed_mock = MagicMock(spec=discord.Embed)
 	# monkeypatch.setattr(embed_mock, 'findRecord', mockDb.findRecord)	
 
 	qm.qs[11] = rsqueue_mock
 
 	# method under test
-	result = qm.buildStaleEmbed(rsqueue_mock)
+	result = qm.buildStaleEmbed(guild=guild_mock, queue=rsqueue_mock, user=expected_memInfo)
 
 	assert result != None
-	assert result.description == AnyStringWith("Do you want to remain in the queue?")
-	assert result.title == AnyStringWith("RS 11 Queue")
+	assert result.description == AnyStringWith("You have been in the queue for")
+	assert result.title == AnyStringWith("Check")
 	assert result.color == discord.Color.magenta()
 
 
@@ -314,9 +379,9 @@ async def test_CheckForStaleMembers_OneStaleMember(monkeypatch):
 	rsqueue_mock.members = MagicMock()
 	rsqueue_mock.getQueueMembers = MagicMock(return_value=expected_members)
 	rsqueue_mock.getStaleMembers = MagicMock(return_value=expected_userId_stale_members)
-	stalemembers_mock = MagicMock
+	rsqueue_mock.qRuns = 33
+	stalemembers_mock = MagicMock()
 	embed_mock = MagicMock(spec=discord.Embed)
-	# monkeypatch.setattr(embed_mock, 'findRecord', mockDb.findRecord)	
 
 	qm.qs[11] = rsqueue_mock
 
@@ -326,10 +391,10 @@ async def test_CheckForStaleMembers_OneStaleMember(monkeypatch):
 	assert result == True
 	assert len(qm.privateMessages) == 1
 
-	calls = [call("✔"),
-			 call("❌")]
+	calls = [call("✅"),
+			 call("❎")]
 	
-	message_mock.add_reaction.assert_has_calls(calls=calls, any_order=False)
+	message_mock.add_reaction.assert_has_calls(calls=calls, any_order=True)
 
 
 
@@ -390,11 +455,12 @@ async def test_CheckForStaleMembers_OneStaleMemberTimedOut(monkeypatch):
 	rsqueue_mock.channelId = channelId
 	rsqueue_mock.refreshRate = refreshRate
 	rsqueue_mock.size = size
+	rsqueue_mock.qRuns = 33
 	rsqueue_mock.members = MagicMock()
 	rsqueue_mock.getQueueMembers = MagicMock(return_value=expected_members)
 	rsqueue_mock.getStaleMembers = MagicMock(return_value=expected_userId_stale_members)
 	rsqueue_mock.getStaleMembersWhoTimedOut = MagicMock(return_value=expected_userId_stale_members)
-
+	rsqueue_mock.lastQueueMessage = MagicMock(spec=discord.Message)
 	expected_privateMessage = PrivateMessage(message=message_mock, userId=10000, queue=rsqueue_mock, memInfo=expected_memInfo)
 	expected_privateMessages = [expected_privateMessage]
 
@@ -412,129 +478,122 @@ async def test_CheckForStaleMembers_OneStaleMemberTimedOut(monkeypatch):
 	assert result == True
 	assert len(qm.privateMessages) == 0
 
-	calls = [call("✔"),
-			 call("❌")]
+	removeReactionCalls = [call(emoji='✅', member=member_mock),
+			 		 	   call(emoji='❎', member=member_mock)]
 	
-	message_mock.remove_reaction.assert_has_calls(calls=calls, any_order=False)
+	message_mock.remove_reaction.assert_has_calls(calls=removeReactionCalls, any_order=True)
 	channel_mock.send.assert_awaited_once_with(AnyStringWith('has timed out and been removed from RS 11 Queue'))  # send via channel object obtained from guild return -> guild channel
 	message_mock.channel.send.assert_awaited_once_with(AnyStringWith('You have be removed from the **RS 11 Queue** due to acitivty timeout.\n\nPlease rejoin RS 11 Queue in'))	# send via message object -> in this case as DM
+	# TODO: Check the following actions
+	#	1.delete users from RSQueue
+    #	2.update queue status to channel
 
-
+ 
+@pytest.fixture()
+def handelReactionFixure(monkeypatch):
+	td = handelReactionTestDataAndMocks(monkeypatch)
+	return td
 
 @pytest.mark.asyncio
-async def test_handelReaction(monkeypatch):
-	databaseId = 111122222
-	guildId = 2222222
-	queueName = "RS 11 Queue"
-	queueId = "11"
-	queueRole = "SomeRole"
-	queueRoleId = "444444"
-	channel = "#RS11"
-	channelId = "555555"
-	refreshRate = 15.0
-	# runs = 0
-	size = 4
+async def test_handelReactionWithReactionForSomethingElseNotMatchingStaleUser(handelReactionFixure):
+	
+	td = handelReactionFixure
 
-	timeStaleExpiredTime : datetime = datetime(year=2022, month=10, day=25, hour=14, minute=10, second=0)
-	timeNow : datetime = datetime(year=2022, month=10, day=25, hour=14, minute=15, second=0)
 
-	expected_dummy_string = 'Message from the bot that the user will react too.'
-	expected_memInfo = MemberInfo(name="Jesus", userId=10000, queue="RS11", guildId=1111)
+	td.mock_MemberInfo_now.side_effect = [td.timeNow] # when have two periods to test for
+													  #    a) idle timeout of 15
+													  #    b) idele message timeout of 5min
+ 
+	qm = RSQueueManager(td.bot_mock)
+	qm.privateMessages = td.expected_privateMessages
 	
-	expected_members = [expected_memInfo]
-	expected_userId_stale_members = [expected_memInfo]
-	
-	mock_MemberInfo_now = MagicMock(return_value=timeStaleExpiredTime)
-	monkeypatch.setattr(MemberInfo, 'now', mock_MemberInfo_now)
-
-	message_mock = AsyncMock(spec=discord.Message)
-	message_mock.add_reaction = AsyncMock()
-	message_mock.remove_reaction = AsyncMock()
-	message_mock.channel = AsyncMock()
-	message_mock.channel.send = AsyncMock()
-	message_mock.content = expected_dummy_string
-	member_mock = MagicMock()
-	member_mock.create_dm = AsyncMock()
-	member_mock.send = AsyncMock(return_value=message_mock)
-	
-	context_mock = MagicMock(spec=commands.Context)
-	context_mock.author = MagicMock()
-	context_mock.author.name = 'Somebody'
-	
-	channel_mock = MagicMock()
-	channel_mock.send = AsyncMock(return_value=message_mock)
-	
-	guild_mock = MagicMock()
-	guild_mock.get_channel = MagicMock(return_value=channel_mock)
-	guild_mock.get_member = MagicMock(return_value=member_mock)
-	
-	bot_mock = MagicMock(spec=commands.Bot)
-	bot_mock.get_guild = MagicMock(return_value=guild_mock)
-	qm = RSQueueManager(bot_mock)
-	
-	rsqueue_mock = MagicMock(spec=RSQueue)
-	rsqueue_mock.databaseId = databaseId
-	rsqueue_mock.guildId = guildId
-	rsqueue_mock.name = queueName
-	rsqueue_mock.queueId = queueId
-	rsqueue_mock.role = queueRole
-	rsqueue_mock.roleId = queueRoleId
-	rsqueue_mock.channel = channel
-	rsqueue_mock.channelId = channelId
-	rsqueue_mock.refreshRate = refreshRate
-	rsqueue_mock.size = size
-	rsqueue_mock.members = expected_members
-	rsqueue_mock.getQueueMembers = MagicMock(return_value=expected_members)
-	rsqueue_mock.getStaleMembers = MagicMock(return_value=expected_members)
-	rsqueue_mock.getStaleMembersWhoTimedOut = MagicMock(return_value=expected_members)
-
-	expected_privateMessage = PrivateMessage(message=message_mock, userId=10000, queue=rsqueue_mock, memInfo=expected_memInfo)
-	expected_privateMessages = [expected_privateMessage]
-
-	reaction_mock = MagicMock(spec=discord.Reaction)
-	reaction_mock.message = MagicMock()
-	reaction_mock.message.channel = MagicMock()
-	reaction_mock.message.content = expected_dummy_string
-	reaction_mock.emoji = "✔"
-	user_mock = MagicMock(spec=discord.User)
-	user_mock.dm_channel = reaction_mock.message.channel
-
-	#mock_MemberInfo_now.side_effect = [timeStaleExpiredTime, timeNow]
-	mock_MemberInfo_now.side_effect = [timeNow]
-	qm.privateMessages = expected_privateMessages
+	# Mock setup for this test: matching user and MemberInfo 
+	td.user_mock.id = 00000 # user id of something user i.e not the stale user
+	td.rsqueue_mock.members = []
+	td.rsqueue_mock.members.append(td.expected_memInfo)	# info regarding stale user in queue
+	td.expected_memInfo.timeSinceLastQueueActivity = td.timeNow
+    
 	#rsqueue_mock.privateMessages = expected_privateMessages
 	stalemembers_mock = MagicMock
 	embed_mock = MagicMock(spec=discord.Embed)
 	# monkeypatch.setattr(embed_mock, 'findRecord', mockDb.findRecord)	
 
-	qm.qs[11] = rsqueue_mock
+	qm.qs[11] = td.rsqueue_mock
 
 
 	# method under test
-	await qm.handelReaction(reaction_mock, user_mock)
+	await qm.handelReaction(td.reaction_mock, td.user_mock)
+
+	assert len(qm.privateMessages) == 1
+	assert qm.qs[11].members[0] == td.expected_memInfo #this should be the stale message
+	assert qm.qs[11].members[0].timeSinceLastQueueActivity == td.timeNow
+
+
+@pytest.mark.asyncio
+async def test_handelReactionWithMatchingStaleUserId(handelReactionFixure):
+	
+	td = handelReactionFixure
+
+	td.mock_MemberInfo_now.side_effect = [td.timeNow] # when have two periods to test for
+													  #    a) idle timeout of 15
+													  #    b) idele message timeout of 5min
+ 
+	qm = RSQueueManager(td.bot_mock)
+	qm.privateMessages = td.expected_privateMessages
+	
+	# Mock setup for this test: matching user and MemberInfo 
+	td.user_mock.id = td.expected_memInfo.userId # user id of the stale user
+	td.rsqueue_mock.members = []
+	td.rsqueue_mock.members.append(td.expected_memInfo)	# info regarding stale user in queue
+	td.expected_memInfo.timeSinceLastQueueActivity = td.timeNow
+    
+	#rsqueue_mock.privateMessages = expected_privateMessages
+	stalemembers_mock = MagicMock
+	embed_mock = MagicMock(spec=discord.Embed)
+	# monkeypatch.setattr(embed_mock, 'findRecord', mockDb.findRecord)	
+
+	qm.qs[11] = td.rsqueue_mock
+
+
+	# method under test
+	await qm.handelReaction(td.reaction_mock, td.user_mock)
+
+	assert len(qm.privateMessages) == 1
+	assert qm.qs[11].members[0] == td.expected_memInfo #this should be the stale message
+	assert qm.qs[11].members[0].timeSinceLastQueueActivity == td.timeNow
+
+@pytest.mark.asyncio
+async def test_handelReactionWithMatchingStaleUserIdAndTickEmojiClicked(handelReactionFixure):
+	
+	td = handelReactionFixure
+
+	td.mock_MemberInfo_now.side_effect = [td.timeNow] # when have two periods to test for
+													  #    a) idle timeout of 15
+													  #    b) idele message timeout of 5min
+ 
+	qm = RSQueueManager(td.bot_mock)
+	qm.privateMessages = td.expected_privateMessages
+	
+	# Mock setup for this test: matching user and MemberInfo 
+	td.user_mock.id = td.expected_memInfo.userId # user id of the stale user
+	td.rsqueue_mock.members = []
+	td.rsqueue_mock.members.append(td.expected_memInfo)	# info regarding stale user in queue
+	td.expected_memInfo.timeSinceLastQueueActivity = td.timeNow
+	td.reaction_mock.emoji = "✅" # reaction to stay in queue
+	#rsqueue_mock.privateMessages = expected_privateMessages
+	stalemembers_mock = MagicMock
+	embed_mock = MagicMock(spec=discord.Embed)
+	# monkeypatch.setattr(embed_mock, 'findRecord', mockDb.findRecord)	
+
+	qm.qs[11] = td.rsqueue_mock
+
+	# method under test
+	await qm.handelReaction(td.reaction_mock, td.user_mock)
+ 
+ 	#	MagicMock.assert_called_once()
+	td.message_mock.channel.send.assert_called_once()
 
 	assert len(qm.privateMessages) == 0
-	assert qm.privateMessages == []
-	assert qm.qs[11].members[0].staleMessage == None
+	assert qm.qs[11].members[0] == td.expected_memInfo
 	assert qm.qs[11].members[0].isStalechecking == False
-	assert qm.qs[11].members[0].timeSinceLastQueueActivity == timeNow
-
-# async def handelReaction(self, reaction : Reaction, user : User):
-#         print ('handleReaction')
-#         if (user.dm_channel == reaction.message.channel):
-#             #private channel reactions
-#             for h in self.privateMessages:
-#                 if (h.message.content == reaction.message.content):
-#                     #check which emoji clicked
-#                     if reaction.emoji == '✔':
-#                         # accept stay in queue
-#                         # 1. update user timout update to now()
-#                         h.memeberInfo.refreshStaleStatus()
-
-#                         # 2. remove message from handler message list
-#                         self.privateMessages.remove(h)
-
-#                     elif reaction.emoji == '❌':
-#                         # reject leave queue
-#                         h.queue.delUser(user.id)
-#                         await self.sendQueueStatus(h.queue)
+	assert qm.qs[11].members[0].timeSinceLastQueueActivity == td.timeNow

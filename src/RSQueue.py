@@ -15,8 +15,20 @@ class QueueStatus(Enum):
         QUEUE_FULL = 3,
         QUEUE_ERROR = 4
 
-STALE_QUEUE_PERIOD = 1 # mins
-STALE_REACT_TIMEOUT = 1 # mins
+# TODO: Tie this into knowing is pytest is running or imported....
+class BUILD_TYPE(Enum):
+        MANUAL_TESTING = 1,
+        UNIT_TESTING = 2,
+        RELEASE = 3,
+
+BUILD_TYPE = BUILD_TYPE.RELEASE
+
+if BUILD_TYPE.MANUAL_TESTING:
+    STALE_QUEUE_PERIOD = 1 # mins
+    STALE_REACT_TIMEOUT = 1 # mins
+elif (BUILD_TYPE.UNIT_TESTING or BUILD_TYPE.RELEASE):
+    STALE_QUEUE_PERIOD = 30 # mins
+    STALE_REACT_TIMEOUT = 5 # mins
 
 class MemberInfo():
     def __init__(self, name : str, userId : int, queue : str, guildId : int = None):
@@ -33,7 +45,7 @@ class MemberInfo():
         self.timeInQueue : datetime = current_time # for ease of testing
         self.timeSinceLastQueueActivity : datetime = current_time # for ease of testing
         self.isStalechecking = False
-        self.staleMessage = None
+        self.staleMessage = None #TODO: can this be removed
 
         self.db = Mongodb()
         self.db.setCollection('Account')
