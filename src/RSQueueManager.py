@@ -54,7 +54,7 @@ class PrivateMessage():
         self.memeberInfo = memInfo
 
     
-class RSQueueManager(commands.Cog):
+class RSQueueManager(commands.Cog, name="RS Queue"):
     """string A"""
 
     qs : typing.Dict[int, RSQueue] = {
@@ -129,26 +129,29 @@ class RSQueueManager(commands.Cog):
         else:
             q.lastQueueMessage = await channel.send(embed=emb)
 
-    @commands.command()
-    async def hi(self, ctx : commands.Context, *args, **kwargs):
-        """string B"""
-        print(args.__str__())
-        await ctx.send(ctx.message.channel.__str__)
-        await ctx.send("Pong")
+    # @commands.command()
+    # async def hi(self, ctx : commands.Context, *args, **kwargs):
+    #     """string B"""
+    #     print(args.__str__())
+    #     await ctx.send(ctx.message.channel.__str__)
+    #     await ctx.send("Pong")
 
-    @commands.command()
+    @commands.command(aliases=["c"])
+    @commands.has_role("Moderator")
     async def connect(self, ctx : commands.Context, *args):
-        """ connects queue to discord channel
+        """ Connects queue to discord channel **(@moderator)**
 
-        Usage: -connect <Level> <name> <role> <optional: queue refresh rate> 
+        Usage: -connect <RS_Level> <Q_Name> <Role> <optional: Queue_Refresh_Rate> 
 
-        Example: -c 8 "RS8 Queue" RS8 15
+        Examples: 
+            -c 8 "RS8 Queue" RS8 15
+            -connect 9 "RS9 Queue" RS9 15
 
         Arguments: 
-        <Level> = integer for RS Queue Level
-        <name> = text based name for the queue
-        <role> = discord role to use for the queue
-        <optional: Queue Refresh rate> = Optional time in minutes to refresh queue when idle
+        <RS_Level> = integer for RS Queue Level
+        <Q_Name> = text based name for the queue
+        <Role> = discord role to use for the queue
+        <Optional: Queue_Refresh_Rate> = Optional time in minutes to refresh queue when idle (default is 15 min)
         """
         
         # store 
@@ -156,7 +159,6 @@ class RSQueueManager(commands.Cog):
         #   queueName : Text Name for the Queue
         #   role : use role for the queue
         #   
-
         # check arg len
         print (len(args))
         
@@ -256,8 +258,20 @@ class RSQueueManager(commands.Cog):
 
         return emb
 
-    @commands.command()
-    async def i(self, ctx :commands.Context, *args):
+    @commands.command(aliases=["i", "in", "j"])
+    async def joinq(self, ctx :commands.Context, *args):
+        '''Joins an RS Queue 
+
+           Usage: -joinq <RS Level>
+               where <RS Level> is value in range 5 .. 11
+
+           Example: 
+               -joinq 10
+               -j 10
+               -in 10
+               -i 10
+        '''
+    
         if (len(args) == 1 and self.can_convert_to_int(args[0])):
             queueIndex = int(args[0])
 
@@ -313,8 +327,20 @@ class RSQueueManager(commands.Cog):
         #start/clear queue in RSQueue - members
         q.startqueue()
 
-    @commands.command()
-    async def o(self, ctx : commands.Context, *args):
+    @commands.command(aliases=["o", "out", "l"])
+    async def leaveq(self, ctx : commands.Context, *args):
+        ''' Leaves an RS Queue
+
+            Usage: -leaveq <RS Level>
+                where <RS Level> is value in range 5 to 11
+
+            Example: 
+                -o 7
+                -leaveq 7 
+                -l 7
+                -o 7
+                -out 7
+        '''
         if (len(args) == 1 and self.can_convert_to_int(args[0])):
             queueIndex = int(args[0])
 
@@ -340,8 +366,18 @@ class RSQueueManager(commands.Cog):
         else:
             #print help
             pass
-    @commands.command()
-    async def s(self, ctx : commands.Context, *args):
+    @commands.command(aliases=["s", "start"])
+    async def startq(self, ctx : commands.Context, *args):
+        ''' Stars an RS Queue before it is full.
+
+        Usage: -start <RS Level>
+            where <RS Level> is value of 5 .. 11
+
+        Examples: 
+            -startq 7
+            -s 5
+            -start 10
+        '''
         if (len(args) == 1 and self.can_convert_to_int(args[0])):
             queueIndex = int(args[0])
             # having a valid queue number
@@ -378,7 +414,12 @@ class RSQueueManager(commands.Cog):
             await ctx.message.channel.send('Invalid arguments: use \'-s <queue_level>\'')
 
     @commands.command()
-    async def l(self, ctx : commands.Context, *args):
+    @commands.has_role("Moderator")
+    async def listq(self, ctx : commands.Context, *args):
+        '''Shows RS Queues Configuration **(@Moderator)**
+
+           Shows configuration of RS Queue to Discord Server Channel/Roles
+        '''
         if args[0] == "queue_cfg":
             emb = self.buildQueueConfigEmbed(RSQueueManager.qs)
             await ctx.send(embed=emb)
@@ -387,21 +428,42 @@ class RSQueueManager(commands.Cog):
             await ctx.send(embed=emb)
 
     @commands.command()
+    @commands.has_role("Moderator")
     async def start_botloop(self, ctx : commands.Context, *args):
-        """Starts the main bot loop for processing bot data and queue refreshes"""
+        """Starts the main bot loop **(@Moderator)**
+        
+        Loop is responsible for processing bot data and queue refreshes
+
+        Examples:
+            -start_bootloop
+        """
         await ctx.channel.send("Starting Periodic RS Bot Services")
         self.queueCheck.start()
 
     @commands.command()
+    @commands.has_role("Moderator")
     async def stop_botloop(self, ctx : commands.Context, *args):
-        """Stops the main bot loop for processing bot data and queue refreshes"""
+        """Stops the main bot loop **(@Moderator)**
+        
+        Loop is responsible for processing bot data and queue refreshes 
+
+        Examples:
+            -stop_bootloop
+        """
         await ctx.channel.send("Stopping Periodic RS Bot Services")
         self.queueCheck.cancel()
 
-    @commands.command()
-    async def q(self, ctx : commands.Context, *args):
-        """Shows the queue status of RSX Queue"""
-        """e.g '-q x' where x is the RS level """
+    @commands.command(aliases=["q"])
+    async def queue(self, ctx : commands.Context, *args):
+        """Shows the RS Queue status.
+        
+        Usage: -queue <RS Level>
+            where <RS Level> is value 5 to 11
+
+        Examples:
+            -q 7
+            -queue 10
+        """
 
         if (len(args) == 1 and self.can_convert_to_int(args[0])):
             queueIndex = int(args[0])
@@ -513,12 +575,6 @@ class RSQueueManager(commands.Cog):
                     pass
                 elif (await self.CheckForStaleTimedOutMembers(q)): # check for stale queue message timeouts (5 min?)
                     pass
-             
-                 
-                
-                
-                       
-                        
 
     def buildStaleEmbed(self, guild : discord.Guild, queue : RSQueue, user : MemberInfo):
         timeInQueue : int = int((datetime.now() - user.timeInQueue).total_seconds() / 60)
@@ -636,40 +692,10 @@ class RSQueueManager(commands.Cog):
         except ValueError:
             return False
 
-# Configure Queue
-# -connect RS7 "RS7 Queue"
-# -connect RS8 "RS8 Queue"
-
-# Start/Stop All Queues
-# -start
-# -stop
-
-# Join Queue
-# -i x
-
-# Leave Queue
-# -o x
-
-# Start Queue
-# -rs7 start
-
-# Refresh Queue
 
 async def setup(bot : commands.bot):
     print ("Adding RSQueueManager")
     await bot.add_cog(RSQueueManager(bot))
 
-    #RSQueueManager.queueCheck.start()
-    # Hard code adding one queue for testing and dev
-    #RSQueueManager.q.append(RSQueue())
-
-
-
 if __name__ == '__main__':
-    #test_bot = commands.Bot(intents=discord.Intents.all(), command_prefix="-")
-    #test_cog = RSQueueManager(test_bot)
-    # test_message = discord.Message(state=discord.ConnectionState.
-    # test_context = commands.Context(message=None, bot=test_bot, view="dummy")
-    # test_cog.connect(None)
-    #RSQueueManager.qs.append(RSQueue('RS7 Queue', 'RS7', "TestChID"))
     pass

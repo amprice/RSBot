@@ -16,7 +16,7 @@ import command
 from command_help import HelpCommand
 
 import discord
-from discord import Reaction, User, types, app_commands
+from discord import Reaction, User, types, app_commands, errors
 from discord.ext import commands
 
 #from discord.ext.commands.bot import PrefixType
@@ -24,13 +24,13 @@ from discord.ext import commands
 from discord.ext.commands._types import *
 
 from RSQueueManager import RSQueueManager
-from modules.BotInfo.cog import BotInfo
+from modules.BotInfo.BotInfo import BotInfo
 
 logger = logging.getLogger('discord')
 logging.basicConfig(level=logging.INFO)
 
 
-help_cmd = commands.DefaultHelpCommand(show_parameter_descriptions=False)
+help_cmd = commands.DefaultHelpCommand(show_parameter_descriptions=False, no_category='General')
 client : commands.Bot = commands.Bot(intents=discord.Intents.all(), 
 									 command_prefix="-", 
 									 help_command=help_cmd,
@@ -38,11 +38,25 @@ client : commands.Bot = commands.Bot(intents=discord.Intents.all(),
 
 cm = command.Command_Manager()
 
-@commands.command()
-async def sync(ctx : commands.Context, *args):
-		fmt = await ctx.bot.tree.sync()
-		await ctx.send(f'Synced {len(fmt)} commands to current guild')
-		return
+# @client.command()
+# async def sync(ctx : commands.Context, *args):
+# 		fmt = await ctx.bot.tree.sync()
+# 		await ctx.send(f'Synced {len(fmt)} commands to current guild')
+# 		return
+@client.event
+async def on_command_error(ctx, exception):
+
+	if isinstance(exception, commands.CommandNotFound):  # fails silently
+		pass
+
+	# elif isinstance(exception, send_help):
+    #     _help = await send_cmd_help(ctx)
+    #     exception ctx.send(embed=_help)
+
+	elif isinstance(exception, commands.MissingRole):
+		await ctx.send(f'You do not have **permission** to run this command.\n' +
+					   f'Please contact the server admin for more information.\n')
+
 
 @client.event
 async def on_ready():
@@ -76,8 +90,8 @@ async def main():
 		print(f'modules')
 
 	for folder in os.listdir(modules):
-		if os.path.exists(os.path.join(modules, folder, "cog.py")):
-			await client.load_extension(name=f"modules.{folder}.cog")
+		if os.path.exists(os.path.join(modules, folder, folder + ".py")):
+			await client.load_extension(name=f"modules.{folder}.{folder}")
 
 	sBotInfo : BotInfo = client.get_cog("BotInfo")
 	sBotInfo.setSoftwareId(getVersion())
