@@ -1,3 +1,4 @@
+from botSystem import BUILD_TYPE
 from typing import Collection, Dict
 import pymongo
 from pymongo import MongoClient
@@ -35,7 +36,7 @@ class Mongodb:
 			password='dbuser123',
 			authSource='admin')
 
-		if "pytest" in sys.modules:
+		if "pytest" in sys.modules or (BUILD_TYPE == BUILD_TYPE.UNIT_TESTING):
 			DATABASE_NAME = 'discord_rs_bot_test'
 		else:
 			DATABASE_NAME = 'discord_rs_bot'

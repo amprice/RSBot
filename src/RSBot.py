@@ -1,4 +1,4 @@
-# from typing import TYPE_CHECKING
+from botSystem import BUILD_TYPE
 from inspect import getmembers
 from sys import prefix
 
@@ -71,7 +71,8 @@ async def on_reaction_add(reaction : Reaction, user : User):
 	if user.id == client.user.id:
 		return
 
-	rsManager : RSQueueManager = client.get_cog("RSQueueManager")
+	rsManager : RSQueueManager = client.get_cog("RS Queue")
+
 	await rsManager.handelReaction(reaction, user)
 
 async def main():
@@ -96,7 +97,13 @@ async def main():
 	sBotInfo : BotInfo = client.get_cog("BotInfo")
 	sBotInfo.setSoftwareId(getVersion())
 
-	await client.start(getEnvKey('TOKEN'))
+
+	if (BUILD_TYPE == BUILD_TYPE.RELEASE):
+		# Live Released Bot
+		await client.start(getEnvKey('TOKEN'))
+	elif (BUILD_TYPE == BUILD_TYPE.UNIT_TESTING):
+		# Test Bot
+		await client.start(getEnvKey('TEST_BOT_TOKEN'))
 	
 if __name__ == '__main__':
 	asyncio.run(main())
