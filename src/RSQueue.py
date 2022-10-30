@@ -1,3 +1,5 @@
+from botSystem import BUILD_TYPE
+
 import asyncio
 import discord
 from discord.ext import commands, tasks
@@ -15,14 +17,9 @@ class QueueStatus(Enum):
         QUEUE_FULL = 3,
         QUEUE_ERROR = 4
 
-# TODO: Tie this into knowing is pytest is running or imported....
-class BUILD_TYPE(Enum):
-        MANUAL_TESTING = 1,
-        UNIT_TESTING = 2,
-        RELEASE = 3,
-
-BUILD_TYPE = BUILD_TYPE.RELEASE
-
+# STALE_QUEUE_PERIOD = 2 # mins
+# STALE_REACT_TIMEOUT = 1 # mins
+    
 if BUILD_TYPE == BUILD_TYPE.MANUAL_TESTING:
     STALE_QUEUE_PERIOD = 1 # mins
     STALE_REACT_TIMEOUT = 1 # mins
