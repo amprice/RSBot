@@ -296,6 +296,10 @@ class RSQueueManager(commands.Cog, name="RS Queue"):
                     botname = botname.split('#', 1)[0]
                     await self.SendStartQueueMessages(q, botname)
                     # Tell QSQueue we done with current queue
+                else: 
+                    # ping queue role of queue addition
+                    role = guild.get_role(q.roleId)
+                    await channel.send(f'**{name}** joined {q.name} {role.mention} ({len(q.members)}/4)')
             else:
                 #log error
                 pass
@@ -357,7 +361,7 @@ class RSQueueManager(commands.Cog, name="RS Queue"):
                 channel = guild.get_channel(q.channelId)
                 emb = self.buildQueueEmbed(guild, q)
                 q.lastQueueMessage = await channel.send(embed=emb)
-
+                await channel.send(f'**{name}** has left {q.name}!')
                 
             else:
                 #log error
@@ -420,12 +424,8 @@ class RSQueueManager(commands.Cog, name="RS Queue"):
 
            Shows configuration of RS Queue to Discord Server Channel/Roles
         '''
-        if args[0] == "queue_cfg":
-            emb = self.buildQueueConfigEmbed(RSQueueManager.qs)
-            await ctx.send(embed=emb)
-        else:
-            emb = self.buildQueueConfigEmbed(RSQueueManager.qs)
-            await ctx.send(embed=emb)
+        emb = self.buildQueueConfigEmbed(RSQueueManager.qs)
+        await ctx.send(embed=emb)
 
     @commands.command()
     @commands.has_role("Moderator")
