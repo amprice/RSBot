@@ -115,6 +115,13 @@ async def test_listQueueConfigCommandWithAllQueuesNone(monkeypatch):
 
 	monkeypatch.setattr(discord.Embed, 'add_field', emb_mock.add_field)
 
+	db_mock = MagicMock(spec=Mongodb)
+	db_mock.findRecord = MagicMock(return_value=None)
+ 
+	monkeypatch.setattr(Mongodb, 'setCollection', db_mock.setCollection)
+	monkeypatch.setattr(Mongodb, 'updateOne', db_mock.updateOne)
+	monkeypatch.setattr(Mongodb, 'findRecord', db_mock.findRecord)	
+ 
 	qm = RSQueueManager(bot_mock)
 
 	await qm.listq(qm, context_mock, "queue_cfg", "foo", "bar")
@@ -163,6 +170,13 @@ async def test_listQueueConfigCommandWithOneQueueConfigured(monkeypatch):
 
 
 	monkeypatch.setattr(discord.Embed, 'add_field', emb_mock.add_field)
+
+	db_mock = MagicMock(spec=Mongodb)
+	db_mock.findRecord = MagicMock(return_value=None)
+	monkeypatch.setattr(Mongodb, 'setCollection', db_mock.setCollection)
+	monkeypatch.setattr(Mongodb, 'updateOne', db_mock.updateOne)
+	monkeypatch.setattr(Mongodb, 'findRecord', db_mock.findRecord)	
+
 
 	qm = RSQueueManager(bot_mock)
 
