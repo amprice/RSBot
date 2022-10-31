@@ -36,10 +36,10 @@ class Mongodb:
 			password='dbuser123',
 			authSource='admin')
 
-		if "pytest" in sys.modules or (BUILD_TYPE == BUILD_TYPE.UNIT_TESTING):
-			DATABASE_NAME = 'discord_rs_bot_test'
-		else:
+		if BUILD_TYPE == BUILD_TYPE.RELEASE:
 			DATABASE_NAME = 'discord_rs_bot'
+		else:
+			DATABASE_NAME = 'discord_rs_bot_test'
 			
 		self.db = self.client[DATABASE_NAME]
 

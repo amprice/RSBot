@@ -694,7 +694,7 @@ class RSQueueManager(commands.Cog, name="RS Queue"):
 
 
 async def setup(bot : commands.bot):
-    print ("Adding RSQueueManager")
+    print ("Loading Cog: RSQueueManager")
     await bot.add_cog(RSQueueManager(bot))
 
 if __name__ == '__main__':
