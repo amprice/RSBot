@@ -4,16 +4,13 @@ from sys import prefix
 
 import os
 from urllib import response
-import RSQueueManager
 import discord.utils
 import asyncio 
 import logging
 from typing import *
 from botenv import getEnvKey
 from botversion import getVersion
-
-import command
-from command_help import HelpCommand
+from pathlib import Path, PurePath
 
 import discord
 from discord import Reaction, User, types, app_commands, errors
@@ -23,12 +20,15 @@ from discord.ext import commands
 
 from discord.ext.commands._types import *
 
-from RSQueueManager import RSQueueManager
-from modules.BotInfo.BotInfo import BotInfo
+from cogs.RSQueue.RSQueue import RSQueueManager
+from cogs.BotInfo import BotInfo
 
 logger = logging.getLogger('discord')
-logging.basicConfig(level=logging.INFO)
 
+if BUILD_TYPE == BUILD_TYPE.RELEASE:
+	logging.basicConfig(level=logging.INFO, filename='RSQueueBot.log')
+else:
+	logging.basicConfig(level=logging.INFO)
 
 help_cmd = commands.DefaultHelpCommand(show_parameter_descriptions=False, no_category='General')
 client : commands.Bot = commands.Bot(intents=discord.Intents.all(), 
@@ -36,7 +36,7 @@ client : commands.Bot = commands.Bot(intents=discord.Intents.all(),
 									 help_command=help_cmd,
 									 guilds = [discord.Object(id=939859311847415818)])
 
-cm = command.Command_Manager()
+# cm = command.Command_Manager()
 
 # @client.command()
 # async def sync(ctx : commands.Context, *args):
@@ -71,7 +71,7 @@ async def on_reaction_add(reaction : Reaction, user : User):
 	if user.id == client.user.id:
 		return
 
-	rsManager : RSQueueManager = client.get_cog("RS Queue")
+	rsManager : RSQueue = client.get_cog("RS Queue")
 
 	await rsManager.handelReaction(reaction, user)
 
@@ -81,18 +81,26 @@ async def main():
 
 	# HelpCommand('help', cm)
 
-	await client.load_extension(name="RSQueueManager")
+	
+	# await client.load_extension(name="RSQueueManager")
 
-	if __debug__:
-		modules = '.\\src\\modules'
-		print(f'{modules}')
+	if (BUILD_TYPE == BUILD_TYPE.RELEASE):
+		path = PurePath("./cogs")
 	else:
-		modules = 'modules'
-		print(f'modules')
-
-	for folder in os.listdir(modules):
-		if os.path.exists(os.path.join(modules, folder, folder + ".py")):
-			await client.load_extension(name=f"modules.{folder}.{folder}")
+		path = PurePath("./src/cogs")
+		print(f"Using Path to find cogs: {path}") 
+		# if __debug__:
+		# 	cogs = 'cogs'
+		# else:
+		# 	cogs = 'cogs'
+	for module in os.listdir(path):
+		print (f'{module}')
+		
+		path_to_cog = path.joinpath(f"{module}/{module}.py")
+		print (path_to_cog)
+		if os.path.exists(path_to_cog):
+			print(f"cogs.{module}.{module}")
+			await client.load_extension(name=f"cogs.{module}.{module}")
 
 	sBotInfo : BotInfo = client.get_cog("BotInfo")
 	sBotInfo.setSoftwareId(getVersion())
@@ -101,7 +109,7 @@ async def main():
 	if (BUILD_TYPE == BUILD_TYPE.RELEASE):
 		# Live Released Bot
 		await client.start(getEnvKey('TOKEN'))
-	elif (BUILD_TYPE == BUILD_TYPE.UNIT_TESTING):
+	else:
 		# Test Bot
 		await client.start(getEnvKey('TEST_BOT_TOKEN'))
 	

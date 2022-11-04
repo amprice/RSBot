@@ -1,3 +1,8 @@
+import sys, os
+if __name__ == '__main__':
+    import sys
+    sys.path.insert(1, 'src') # allow the unit test files to be in "./unit" folder
+
 from botSystem import BUILD_TYPE
 
 import asyncio
@@ -349,49 +354,3 @@ class RSQueue:
 
 if __name__ == '__main__':
     pass
-    # # Basic Queue Test
-    # q1 = RSQueue('112233', 'Red Star Level 7', 'RS7', 3223443, '#RS7', 3242332, 1.0)
-
-    # rec = q1.addUser('Andrew')
-    # pprint.pprint(rec)
-    
-    # print (q1.isTimeToPrintQueue())
-
-    # time.sleep(60)
-
-    # print (q1.isTimeToPrintQueue())
-    # print (q1.isTimeToPrintQueue())
-    
-    # q1.calculateDeltaTimeSinceLastQueuePrint()
-    # #q2 = Queue('Red Star Level 8', 'RS8')
-    # #q3 = Queue('Red Star Level 9', 'RS9')
-
-    # q = RSQueue(7)
-
-    # q.addUser('Andrew', 1111)
-    # q.addUser('Andrew', 1111)
-    # q.addUser('Andrew1', 2222)
-    # q.addUser('Andrew', 1111)
-    # q.addUser('Andrew', 1111)
-
-    # q.printMembers()
-
-    # q.delUser(userName='Andrew', userId=2222)
-
-    # q.printMembers()
-
-    # q.addUser('Bob', 3333)
-    # q.addUser('Jim', 4444)
-    # q.addUser('John', 5555)
-    # r = q.addUser('David', 6666)
-    # if (r == False):
-    #     print ('Failed to Add Member')
-
-    # q.printMembers()
-
-    # q.delUser(userName='Andrew', userId=1111)
-    # q.printMembers()
-
-    # dt : datetime = datetime(year=2022, month=10, day=25, hour=14, minute=10, second=40)
-    # print (f'{type(dt)} {dt}')
-    # print ((dt - q.members[0].timeInQueue).total_seconds())

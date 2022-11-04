@@ -77,5 +77,5 @@ class BotInfo(commands.Cog, name="BotInfo"):
 			return
 
 async def setup(bot : commands.bot):
-    print ("Addint BotInfo Cog")
+    print ("Loading Cog: BotInfo")
     await bot.add_cog(BotInfo(bot), guilds = [discord.Object(id=939859311847415818)])

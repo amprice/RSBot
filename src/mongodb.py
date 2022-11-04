@@ -5,9 +5,8 @@ from pymongo import MongoClient
 from pymongo import collection
 import bson
 from bson import DBRef
-
 import pprint
-import sys
+import sys, os
 
 userdata = {"name": 'Andrew',
 	"account": 'somestring_new111',
@@ -36,10 +35,10 @@ class Mongodb:
 			password='dbuser123',
 			authSource='admin')
 
-		if "pytest" in sys.modules or (BUILD_TYPE == BUILD_TYPE.UNIT_TESTING):
-			DATABASE_NAME = 'discord_rs_bot_test'
-		else:
+		if BUILD_TYPE == BUILD_TYPE.RELEASE:
 			DATABASE_NAME = 'discord_rs_bot'
+		else:
+			DATABASE_NAME = 'discord_rs_bot_test'
 			
 		self.db = self.client[DATABASE_NAME]
 
@@ -92,7 +91,7 @@ if __name__ == '__main__':
 	record = db1.findRecord('Account', {'name': 'Andrew'})
 	pprint.pprint(record)
 	db1.close()
-
+	print (os.getcwd())
 	# db_names = client.list_database_names()
 	# if DATABASE_NAME in db_names:
 	# 	print('Found Database')
