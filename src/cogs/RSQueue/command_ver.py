@@ -1,3 +1,8 @@
+import sys, os
+if __name__ == '__main__':
+    import sys
+    sys.path.insert(1, 'src') # allow the unit test files to be in "./unit" folder
+    
 from typing import List
 import discord
 import asyncio

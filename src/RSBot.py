@@ -4,7 +4,6 @@ from sys import prefix
 
 import os
 from urllib import response
-import RSQueueManager
 import discord.utils
 import asyncio 
 import logging
@@ -12,9 +11,6 @@ from typing import *
 from botenv import getEnvKey
 from botversion import getVersion
 from pathlib import Path, PurePath
-
-import command
-from command_help import HelpCommand
 
 import discord
 from discord import Reaction, User, types, app_commands, errors
@@ -24,7 +20,7 @@ from discord.ext import commands
 
 from discord.ext.commands._types import *
 
-from RSQueueManager import RSQueueManager
+from cogs.RSQueue.RSQueue import RSQueueManager
 from cogs.BotInfo import BotInfo
 
 logger = logging.getLogger('discord')
@@ -40,7 +36,7 @@ client : commands.Bot = commands.Bot(intents=discord.Intents.all(),
 									 help_command=help_cmd,
 									 guilds = [discord.Object(id=939859311847415818)])
 
-cm = command.Command_Manager()
+# cm = command.Command_Manager()
 
 # @client.command()
 # async def sync(ctx : commands.Context, *args):
@@ -75,7 +71,7 @@ async def on_reaction_add(reaction : Reaction, user : User):
 	if user.id == client.user.id:
 		return
 
-	rsManager : RSQueueManager = client.get_cog("RS Queue")
+	rsManager : RSQueue = client.get_cog("RS Queue")
 
 	await rsManager.handelReaction(reaction, user)
 

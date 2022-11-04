@@ -7,7 +7,7 @@ import collections
 import sys
 sys.path .insert(1, '../') # allow the unit test files to be in "./unit" folder
 
-from RSQueue import MemberInfo, RSQueue
+from cogs.RsQueue.RSQueueData import MemberInfo, RSQueue
 from mongodb import Mongodb
 
 class AnyStringWith(str):

@@ -5,9 +5,8 @@ from pymongo import MongoClient
 from pymongo import collection
 import bson
 from bson import DBRef
-
 import pprint
-import sys
+import sys, os
 
 userdata = {"name": 'Andrew',
 	"account": 'somestring_new111',
@@ -92,7 +91,7 @@ if __name__ == '__main__':
 	record = db1.findRecord('Account', {'name': 'Andrew'})
 	pprint.pprint(record)
 	db1.close()
-
+	print (os.getcwd())
 	# db_names = client.list_database_names()
 	# if DATABASE_NAME in db_names:
 	# 	print('Found Database')

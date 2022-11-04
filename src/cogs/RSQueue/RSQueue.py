@@ -1,11 +1,10 @@
+# Define the paths for imports - perhaps this can be done differently?
+import sys, os
+if __name__ == '__main__':
+    import sys
+    sys.path.insert(1, 'src') # allow the unit test files to be in "./unit" folder
+
 import asyncio
-# from contextvars import Context
-from email import message
-from http import client
-from inspect import _ParameterKind
-# from multiprocessing import context
-from tracemalloc import start
-from unicodedata import name
 import discord
 from discord import User, Member, DMChannel, Reaction
 from discord.ext import commands, tasks
@@ -14,10 +13,10 @@ from mongodb import Mongodb
 import pprint
 from enum import Enum
 import typing
-from RSQueue import MemberInfo, RSQueue
-from typing import Dict
+from cogs.RSQueue.RSQueueData import MemberInfo, RSQueue
 
-emoji : Dict[str, str] = {
+
+emoji : typing.Dict[str, str] = {
     "nosanc": "<:nosanc:1032935233298903100>",
     "omega_shield": "<:omega_shield:1032943691981139998>",
     "passive_shield" : "<:passive_shield:1032938383170875423>",
@@ -698,4 +697,5 @@ async def setup(bot : commands.bot):
     await bot.add_cog(RSQueueManager(bot))
 
 if __name__ == '__main__':
-    pass
+    print ('Here')
+    sys.path .insert(1, '../../') # allow the unit test files to be in "./unit" folder
