@@ -9,14 +9,14 @@ from datetime import datetime
 import sys
 sys.path .insert(1, '../') # allow the unit test files to be in "./unit" folder
 
-from cogs.RsQueue.RSQueueData import RSQueue
+from cogs.RSQueue.RSQueueData import RSQueue
 from mongodb import Mongodb
 
-from cogs.RsQueue.RSQueue import RSQueueManager
+from cogs.RSQueue.RSQueue import RSQueueManager
 import discord
 from discord.ext import commands, tasks
 
-from cogs.RsQueue.RSQueueData import MemberInfo
+from cogs.RSQueue.RSQueueData import MemberInfo
 
 @pytest.fixture()
 def fix_UserData(monkeypatch):

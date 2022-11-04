@@ -9,10 +9,10 @@ from datetime import datetime
 import sys
 sys.path .insert(1, '../') # allow the unit test files to be in "./unit" folder
 
-from cogs.RsQueue.RSQueueData import MemberInfo, RSQueue
+from cogs.RSQueue.RSQueueData import MemberInfo, RSQueue
 from mongodb import Mongodb
 
-from cogs.RsQueue.RSQueue import PrivateMessage, RSQueueManager
+from cogs.RSQueue.RSQueue import PrivateMessage, RSQueueManager
 import discord
 from discord.ext import commands, tasks
 
