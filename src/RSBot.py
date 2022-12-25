@@ -71,7 +71,7 @@ async def on_reaction_add(reaction : Reaction, user : User):
 	if user.id == client.user.id:
 		return
 
-	rsManager : RSQueue = client.get_cog("RS Queue")
+	rsManager : RSQueueManager = client.get_cog("RS Queue")
 
 	await rsManager.handelReaction(reaction, user)
 

@@ -208,8 +208,8 @@ def userTestData(monkeypatch):
 
 	return data
 
-
-def test_constructionWithArguments(testdata):
+@pytest.mark.asyncio
+async def test_constructionWithArguments(testdata):
 	
 	q = RSQueue(guildId=testdata.guildId, 
 				queueName=testdata.queueName, 
@@ -241,8 +241,9 @@ def test_constructionWithArguments(testdata):
 	assert q.lastQueuePrint != None
 	assert q.size == 0
 	assert q.searchKey == testdata.expectedSearchKey_QueueCfg
-	
-def test_constructionWithoutArguments(testdata):
+
+@pytest.mark.asyncio	
+async def test_constructionWithoutArguments(testdata):
 	
 	testdata.mockDb.findRecord.return_value=testdata.expectedRecord_QueueCfg
 
@@ -271,7 +272,8 @@ def test_constructionWithoutArguments(testdata):
 	assert q.size == 0
 	assert q.searchKey == {'queueId': testdata.queueId}
 
-def test_realUpdateOne():
+@pytest.mark.asyncio
+async def test_realUpdateOne():
 
 	databaseId = 111111111231
 	guildId = 1234
@@ -305,8 +307,8 @@ def test_realUpdateOne():
 			channelId=channelId,
 			refreshRate=refreshRate)
 
-
-def test_adduser_basicAdd(testdata, userTestData):
+@pytest.mark.asyncio
+async def test_adduser_basicAdd(testdata, userTestData):
 
 	testdata.mockDb.findRecord.side_effect = [testdata.expectedRecord_QueueCfg, None]
 	
@@ -322,8 +324,9 @@ def test_adduser_basicAdd(testdata, userTestData):
 	assert q.members[0].name == userTestData.userName1
 	assert q.members[0].userId == userTestData.uId1
 	assert q.members[0].timeInQueue == userTestData.expectedFixDataTime1
-	
-def test_adduser_basicAddDuplicateUserId(testdata, userTestData):
+
+@pytest.mark.asyncio	
+async def test_adduser_basicAddDuplicateUserId(testdata, userTestData):
 
 	testdata.mockDb.findRecord.side_effect = [testdata.expectedRecord_QueueCfg, None]
 
@@ -337,7 +340,8 @@ def test_adduser_basicAddDuplicateUserId(testdata, userTestData):
 	assert q.members[0].name == userTestData.userName1
 	assert q.members[0].userId == userTestData.uId1
 
-def test_adduser_AddUniqueUsersBeyondQueueSizeOf4(testdata, userTestData):
+@pytest.mark.asyncio
+async def test_adduser_AddUniqueUsersBeyondQueueSizeOf4(testdata, userTestData):
 
 	td = userTestData
 
@@ -362,7 +366,8 @@ def test_adduser_AddUniqueUsersBeyondQueueSizeOf4(testdata, userTestData):
 	assert q.members[3].name == td.userName4
 	assert q.members[3].userId == td.uId4
 
-def test_adduser_DeleteUserUser1(testdata, userTestData):
+@pytest.mark.asyncio
+async def test_adduser_DeleteUserUser1(testdata, userTestData):
 	
 	td = userTestData
 
@@ -386,7 +391,8 @@ def test_adduser_DeleteUserUser1(testdata, userTestData):
 	assert q.members[2].name == td.userName4
 	assert q.members[2].userId == td.uId4
 
-def test_adduser_DeleteUserUser1AndUser4(testdata, userTestData):
+@pytest.mark.asyncio
+async def test_adduser_DeleteUserUser1AndUser4(testdata, userTestData):
 	userName1 = "SomeName"
 	uId1 = 11223344
 	userName2 = "Lord"
@@ -419,7 +425,8 @@ def test_adduser_DeleteUserUser1AndUser4(testdata, userTestData):
 	assert q.members[1].name == userName3
 	assert q.members[1].userId == uId3
 
-def test_isTimeToPrintQueue_NotTimeToPrint(testdata, userTestData):
+@pytest.mark.asyncio
+async def test_isTimeToPrintQueue_NotTimeToPrint(testdata, userTestData):
 
 	testdata.mockDb.findRecord.side_effect = [testdata.expectedRecord_QueueCfg, None]
 
@@ -444,7 +451,8 @@ def test_isTimeToPrintQueue_NotTimeToPrint(testdata, userTestData):
 	assert q.isTimeToPrintQueue() == False
 	assert q.lastQueuePrint == userTestData.expectedFixDataTime1
 
-def test_isTimeToPrintQueue_TimeToPrint(testdata, userTestData):
+@pytest.mark.asyncio
+async def test_isTimeToPrintQueue_TimeToPrint(testdata, userTestData):
 
 	testdata.mockDb.findRecord.side_effect = [testdata.expectedRecord_QueueCfg, None]
 
@@ -467,7 +475,8 @@ def test_isTimeToPrintQueue_TimeToPrint(testdata, userTestData):
 	assert q.isTimeToPrintQueue() == True
 	assert q.lastQueuePrint == new_datetime
 
-def test_getQueueMembers_OneUserInQueue(testdata, userTestData):
+@pytest.mark.asyncio
+async def test_getQueueMembers_OneUserInQueue(testdata, userTestData):
 
 	testdata.mockDb.findRecord.side_effect = [testdata.expectedRecord_QueueCfg, None]
 	
@@ -486,7 +495,8 @@ def test_getQueueMembers_OneUserInQueue(testdata, userTestData):
 	assert len(result) == 1
 	assert result[0] == userTestData.uId1
 
-def test_getQueueMembers_FourUsersInQueue(testdata, userTestData):
+@pytest.mark.asyncio
+async def test_getQueueMembers_FourUsersInQueue(testdata, userTestData):
 	
 	td = userTestData
 	testdata.mockDb.findRecord.side_effect = [testdata.expectedRecord_QueueCfg, None, None, None, None]
@@ -512,8 +522,8 @@ def test_getQueueMembers_FourUsersInQueue(testdata, userTestData):
 
     #def buildUserStrings(self) -> str:
 
-
-def test_buildUserStrings_SingleUser(testdata, userTestData):
+@pytest.mark.asyncio
+async def test_buildUserStrings_SingleUser(testdata, userTestData):
 
 	#searchKey = {'userId': self.userId} # TODO : check that correct searching key is passed in request
 	testdata.mockDb.findRecord.side_effect = [testdata.expectedRecord_QueueCfg, None]
@@ -539,8 +549,9 @@ def test_buildUserStrings_SingleUser(testdata, userTestData):
 	# assert q.lastQueuePrint == userTestData.expectedFixDataTime1
 	# assert q.isTimeToPrintQueue() == True
 	# assert q.lastQueuePrint == new_datetime
-	
-def test_buildUserStrings_FourUsers(testdata, userTestData):
+
+@pytest.mark.asyncio	
+async def test_buildUserStrings_FourUsers(testdata, userTestData):
 	queue_td = testdata
 	user_td = userTestData
 	#TODO : Extend this test for 4 users in the queue
@@ -568,8 +579,8 @@ def test_buildUserStrings_FourUsers(testdata, userTestData):
 
 	assert result == expectedString
 
-
-def test_startQueue_OneUsers(testdata, userTestData):
+@pytest.mark.asyncio
+async def test_startQueue_OneUsers(testdata, userTestData):
 	#queue_td = testdata
 	user_td = userTestData
 
@@ -607,7 +618,8 @@ def test_startQueue_OneUsers(testdata, userTestData):
 	assert len(q.members) == 0
 	assert q.size == 0
 
-def test_getStaleMembers_NoStaleUsers(testdata, userTestData):
+@pytest.mark.asyncio
+async def test_getStaleMembers_NoStaleUsers(testdata, userTestData):
 	testdata.mockDb.findRecord.side_effect = [testdata.expectedRecord_QueueCfg, None, None, None, None]
 
 	q = RSQueue(queueId=testdata.queueId)
@@ -622,8 +634,8 @@ def test_getStaleMembers_NoStaleUsers(testdata, userTestData):
 
 	assert(stale_members == None)
 
-
-def test_getStaleMembers_OneStaleUser(testdata, userTestData):
+@pytest.mark.asyncio
+async def test_getStaleMembers_OneStaleUser(testdata, userTestData):
 
 	timeJoinedQueue : datetime = datetime(year=2022, month=10, day=25, hour=14, minute=10, second=0)
 	timeNow : datetime = 		 datetime(year=2022, month=10, day=25, hour=14, minute=40, second=0)
@@ -656,7 +668,8 @@ def test_getStaleMembers_OneStaleUser(testdata, userTestData):
 	assert(len(stale_members) == 1)
 	assert userTestData.uId3 == q.members[2].userId 
 
-def test_getStaleMembers_TwoStaleUser(testdata, userTestData):
+@pytest.mark.asyncio
+async def test_getStaleMembers_TwoStaleUser(testdata, userTestData):
 
 	timeJoinedQueue : datetime = datetime(year=2022, month=10, day=25, hour=14, minute=10, second=0)
 	timeNow : datetime = 		 datetime(year=2022, month=10, day=25, hour=14, minute=40, second=0)
@@ -691,7 +704,8 @@ def test_getStaleMembers_TwoStaleUser(testdata, userTestData):
 	assert userTestData.uId2 == q.members[1].userId 
 	assert userTestData.uId3 == q.members[2].userId 
 
-def test_getStaleMembersWithTimout_OneStaleUser(testdata, userTestData):
+@pytest.mark.asyncio
+async def test_getStaleMembersWithTimout_OneStaleUser(testdata, userTestData):
 
 	timeJoinedQueue : datetime = 	    datetime(year=2022, month=10, day=25, hour=14, minute=10, second=0)
 	timeNow : datetime = 		 	    datetime(year=2022, month=10, day=25, hour=14, minute=25, second=0)

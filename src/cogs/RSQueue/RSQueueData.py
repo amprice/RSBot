@@ -8,6 +8,7 @@ from botSystem import BUILD_TYPE
 import asyncio
 import discord
 from discord.ext import commands, tasks
+from discord.ui import Button, View
 from datetime import datetime, timedelta
 
 from mongodb import Mongodb
@@ -109,6 +110,29 @@ class MemberInfo():
     def now(self):
         return datetime.now()
 
+class QueueView(View):
+    
+    callback = None
+    
+    @discord.ui.button(label="Join", style=discord.ButtonStyle.green, emoji="<:tick_mark:1056560138137378837>")
+    async def join_callback(self, interaction : discord.Interaction, button : discord.ui.Button):
+        #await interaction.response.send_message(f"Join Queue {self.queue}")
+        await self.callback.sendmessageCallback(interaction)
+        
+    @discord.ui.button(label="Leave", style=discord.ButtonStyle.red, emoji="<:cross_mark:1056558747520077934>")
+    async def leave_callback(self, interaction : discord.Interaction, button : discord.ui.Button):
+        await interaction.response.send_message(f"Leave Queue {self.queue}")
+
+    def __init__(self, queue : int, timeout: float = 180):
+        super().__init__(timeout=timeout)
+        
+        self.queue = queue
+ 
+        
+        #self.add_item(self.joinButton)
+        
+   
+   
 class RSQueue:
 
     # Used when starting up to recover previous queue config if any
@@ -118,7 +142,7 @@ class RSQueue:
     #     result = self.db.findRecord('QueueCfg', self.searchKey)
 
     #     if result != None:
-
+    callback = None
 
     def __init__(self, queueId :str, guildId : int = None, queueName : str = None, queueRole: str = None, queueRoleId : str = None, channel : str = None, channelId : int = None, refreshRate : float = None):
         self.guildId = guildId
@@ -139,7 +163,9 @@ class RSQueue:
 
         self.members : typing.List[MemberInfo] = []
         self.lastQueueMessage : discord.Message = None
-
+        self.view : QueueView = QueueView(queueId, 0)
+        QueueView.callback = self.callback
+        
         self.db = Mongodb()
 
         # self.db.setCollection(self.role)

@@ -52,7 +52,7 @@ class PrivateMessage():
         self.queue = queue
         self.memeberInfo = memInfo
 
-    
+     
 class RSQueueManager(commands.Cog, name="RS Queue"):
     """string A"""
 
@@ -69,12 +69,19 @@ class RSQueueManager(commands.Cog, name="RS Queue"):
     def __init__(self, bot : commands.Bot):
         self.bot : commands.Bot = bot
         self.queueCheck.start()
+        RSQueue.callback = self
         for key in RSQueueManager.qs:
             q = RSQueue(queueId=key)
             if q.name != None:
                 RSQueueManager.qs[key] = q
         
         self.privateMessages : typing.List[PrivateMessage] = []
+        
+        
+
+    async def sendmessageCallback(self, interaction : discord.Interaction):
+        await interaction.response.send_message("Dummy")
+    
 
     async def handelReaction(self, reaction : Reaction, user : User):
         print ('handleReaction')
@@ -118,15 +125,17 @@ class RSQueueManager(commands.Cog, name="RS Queue"):
 
                         self.privateMessages.remove(h)
                         
-    async def sendQueueStatus(self, q, isEditMessage : bool = False):
+    async def sendQueueStatus(self, q : RSQueue, isEditMessage : bool = False):
         q.printMembers() #debug maybe convert to log
         guild = self.bot.get_guild(q.guildId)
         channel = guild.get_channel(q.channelId)
         emb = self.buildQueueEmbed(guild, q)
         if isEditMessage:
-            q.lastQueueMessage = await q.lastQueueMessage.edit(embed=emb)
+            q.lastQueueMessage = await q.lastQueueMessage.edit(embed=emb, view=q.view)
         else:
-            q.lastQueueMessage = await channel.send(embed=emb)
+            if (q.lastQueueMessage != None):
+                await q.lastQueueMessage.delete()
+            q.lastQueueMessage = await channel.send(embed=emb, view=q.view)
 
     # @commands.command()
     # async def hi(self, ctx : commands.Context, *args, **kwargs):
@@ -285,8 +294,8 @@ class RSQueueManager(commands.Cog, name="RS Queue"):
                 q.printMembers() #debug maybe convert to log
                 guild = self.bot.get_guild(q.guildId)
                 channel = guild.get_channel(q.channelId)
-                emb = self.buildQueueEmbed(guild, q)
-                q.lastQueueMessage = await channel.send(embed=emb)
+                
+                await self.sendQueueStatus(q, False)
 
                 #check to see if queue complete 4/4
                 if (q.checkStartQueue()):
@@ -358,8 +367,9 @@ class RSQueueManager(commands.Cog, name="RS Queue"):
                 q.printMembers() #debug maybe convert to log
                 guild = self.bot.get_guild(q.guildId)
                 channel = guild.get_channel(q.channelId)
-                emb = self.buildQueueEmbed(guild, q)
-                q.lastQueueMessage = await channel.send(embed=emb)
+                
+                await self.sendQueueStatus(q, False)
+                
                 await channel.send(f'**{name}** has left {q.name}!')
                 
             else:
@@ -476,8 +486,8 @@ class RSQueueManager(commands.Cog, name="RS Queue"):
                 else:
                     guild = self.bot.get_guild(q.guildId)
                     channel = guild.get_channel(q.channelId)
-                    emb = self.buildQueueEmbed(guild, q)
-                    q.lastQueueMessage = await channel.send(embed=emb)
+                    
+                    await self.sendQueueStatus(q, False)
         else:
             await ctx.channel.send("Printing Dummy Queue with RSMods")
             qEmbed = self.printQueueEmbed(ctx)
@@ -489,11 +499,9 @@ class RSQueueManager(commands.Cog, name="RS Queue"):
         if (q.isTimeToPrintQueue()): #and q.size != 0):
             guild = self.bot.get_guild(q.guildId)
             channel = guild.get_channel(q.channelId)
-            emb = self.buildQueueEmbed(guild, q)
-            if q.lastQueueMessage == None:
-                q.lastQueueMessage = await channel.send(embed=emb)
-            else:
-                q.lastQueueMessage = await q.lastQueueMessage.edit(embed=emb)
+            
+            await self.sendQueueStatus(q, q.lastQueueMessage != None)
+          
             return True
         return False
 
@@ -628,8 +636,7 @@ class RSQueueManager(commands.Cog, name="RS Queue"):
                 q = RSQueueManager.qs[key]
                 guild = self.bot.get_guild(q.guildId)
                 channel = guild.get_channel(q.channelId)
-                emb = self.buildQueueEmbed(guild, q)
-                q.lastQueueMessage = await channel.send(embed=emb)
+                await self.sendQueueStatus(q, False)
                 await asyncio.sleep(1)
         await self.bot.wait_until_ready()  # wait until the bot logs in
 
