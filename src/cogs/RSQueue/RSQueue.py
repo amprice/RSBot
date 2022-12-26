@@ -79,9 +79,6 @@ class RSQueueManager(commands.Cog, name="RS Queue"):
         
         
 
-    async def sendmessageCallback(self, interaction : discord.Interaction):
-        await interaction.response.send_message("Dummy")
-    
 
     async def handelReaction(self, reaction : Reaction, user : User):
         print ('handleReaction')
@@ -126,7 +123,6 @@ class RSQueueManager(commands.Cog, name="RS Queue"):
                         self.privateMessages.remove(h)
                         
     async def sendQueueStatus(self, q : RSQueue, isEditMessage : bool = False):
-        q.printMembers() #debug maybe convert to log
         guild = self.bot.get_guild(q.guildId)
         channel = guild.get_channel(q.channelId)
         emb = self.buildQueueEmbed(guild, q)
@@ -286,36 +282,43 @@ class RSQueueManager(commands.Cog, name="RS Queue"):
             name = ctx.author.name
             userId = ctx.author.id
             # join queue
-            if (RSQueueManager.qs[queueIndex].addUser(userName=name, userId=userId)):
-                # added user to queue
-
-                # print updates queue status and ensure lastPrint timestamp is refreshed as to not spam the channel
-                q = RSQueueManager.qs[queueIndex]
-                q.printMembers() #debug maybe convert to log
-                guild = self.bot.get_guild(q.guildId)
-                channel = guild.get_channel(q.channelId)
-                
-                await self.sendQueueStatus(q, False)
-
-                #check to see if queue complete 4/4
-                if (q.checkStartQueue()):
-                    # Trigger Start Messages
-                    botname : str = self.bot.user.__str__()
-                    botname = botname.split('#', 1)[0]
-                    await self.SendStartQueueMessages(q, botname)
-                    # Tell QSQueue we done with current queue
-                else: 
-                    # ping queue role of queue addition
-                    role = guild.get_role(q.roleId)
-                    await channel.send(f'**{name}** joined {q.name} {role.mention} ({len(q.members)}/4)')
-            else:
-                #log error
-                pass
+            await self.JoinQueue(queueIndex=queueIndex, userName=name, userId=userId)
 
         else:
             #print help
             pass
 
+    async def JoinQueue(self, queueIndex : int, userName : str, userId : int, editMessage : bool = False, croid : bool = False):
+        
+        success : bool = RSQueueManager.qs[queueIndex].addUser(userName, userId, croid)
+        if (success):
+            # added user to queue
+
+            # print updates queue status and ensure lastPrint timestamp is refreshed as to not spam the channel
+            q = RSQueueManager.qs[queueIndex]
+            #q.printMembers() #debug maybe convert to log
+            guild = self.bot.get_guild(q.guildId)
+            channel = guild.get_channel(q.channelId)
+            
+            await self.sendQueueStatus(q, editMessage)
+
+            #check to see if queue complete 4/4
+            if (q.checkStartQueue()):
+                # Trigger Start Messages
+                botname : str = self.bot.user.__str__()
+                botname = botname.split('#', 1)[0]
+                await self.SendStartQueueMessages(q, botname)
+                # Tell QSQueue we done with current queue
+            elif (editMessage == False): 
+                # ping queue role of queue addition
+                role = guild.get_role(q.roleId)
+                await channel.send(f'**{userName}** joined {q.name} {role.mention} ({len(q.members)}/4)')
+        else:
+            #log error
+            pass
+        
+        return success
+    
     async def SendStartQueueMessages(self, q : RSQueue, startedBy : str):
         guild = self.bot.get_guild(q.guildId)
         channel = guild.get_channel(q.channelId)
@@ -358,27 +361,34 @@ class RSQueueManager(commands.Cog, name="RS Queue"):
 
             name = ctx.author.name
             userId = ctx.author.id
-            # join queue
-            if (RSQueueManager.qs[queueIndex].delUser(userName=name, userId=userId)):
-                # added user to queue
-
-                # print updates queue status and ensure lastPrint timestamp is refreshed as to not spam the channel
-                q = RSQueueManager.qs[queueIndex]
-                q.printMembers() #debug maybe convert to log
-                guild = self.bot.get_guild(q.guildId)
-                channel = guild.get_channel(q.channelId)
-                
-                await self.sendQueueStatus(q, False)
-                
-                await channel.send(f'**{name}** has left {q.name}!')
-                
-            else:
-                #log error
-                pass
+           
+            await self.LeaveQueue(queueIndex=queueIndex, userName=name, userId=userId)
 
         else:
             #print help
             pass
+        
+    async def LeaveQueue(self, queueIndex : int, userName : str, userId : int) -> bool:
+        success : bool = RSQueueManager.qs[queueIndex].delUser(userName=userName, userId=userId)
+        if (success):
+            # added user to queue
+
+            # print updates queue status and ensure lastPrint timestamp is refreshed as to not spam the channel
+            q = RSQueueManager.qs[queueIndex]
+            #q.printMembers() #debug maybe convert to log
+            guild = self.bot.get_guild(q.guildId)
+            channel = guild.get_channel(q.channelId)
+            
+            await self.sendQueueStatus(q, False)
+            
+            await channel.send(f'**{userName}** has left {q.name}!')
+            
+        else:
+            #log error
+            pass
+        
+        return success
+        
     @commands.command(aliases=["s", "start"])
     async def startq(self, ctx : commands.Context, *args):
         ''' Stars an RS Queue before it is full.
@@ -393,39 +403,43 @@ class RSQueueManager(commands.Cog, name="RS Queue"):
         '''
         if (len(args) == 1 and self.can_convert_to_int(args[0])):
             queueIndex = int(args[0])
-            # having a valid queue number
-            if queueIndex in range(5,12):
-                q = RSQueueManager.qs[queueIndex]
-                #q.printMembers() #debug maybe convert to log
-                guild = self.bot.get_guild(q.guildId)
-                channel = guild.get_channel(q.channelId)
-                if q.size == 0:
-                    # nothing to start
-                    await channel.send(f"{q.name} ({q.size}/4) is empty and can not be started!")
-                    return
-
-                userIds = q.getQueueMemberIds()
-                mentionStr = ""
-
-                for userId in userIds:
-                    mentionStr += f"{guild.get_member(userId).mention} "
-                    m : Member = guild.get_member(userId)
-                    await m.create_dm()
-                    await m.send(f"**Your {q.name} is Ready**\n" +
-                                 f"You can organize where to run at here {channel.mention}")
-
-                #ping members message queue is ready
-                await channel.send(f"**{q.name} Ready**\n\n"+
-                                    f"Started by **{ctx.author.name}** with **({q.size}/4)**\n" +
-                                    f"{mentionStr}\n\n" +
-                                    f"Where to meet OOH or Watchers or somewhere else?")
-
-                #start/clear queue in RSQueue - members
-                q.startqueue()
+            
+            await self.startQueue(queueIndex=queueIndex, userName=ctx.author.name)
         else:
             # show command help
             await ctx.message.channel.send('Invalid arguments: use \'-s <queue_level>\'')
 
+    async def startQueue (self, queueIndex : int, userName : str):
+        # having a valid queue number
+        if queueIndex in range(5,12):
+            q = RSQueueManager.qs[queueIndex]
+            #q.printMembers() #debug maybe convert to log
+            guild = self.bot.get_guild(q.guildId)
+            channel = guild.get_channel(q.channelId)
+            if q.size == 0:
+                # nothing to start
+                await channel.send(f"{q.name} ({q.size}/4) is empty and can not be started!")
+                return
+
+            userIds = q.getQueueMemberIds()
+            mentionStr = ""
+
+            for userId in userIds:
+                mentionStr += f"{guild.get_member(userId).mention} "
+                m : Member = guild.get_member(userId)
+                await m.create_dm()
+                await m.send(f"**Your {q.name} is Ready**\n" +
+                                f"You can organize where to run at here {channel.mention}")
+
+            #ping members message queue is ready
+            await channel.send(f"**{q.name} Ready**\n\n"+
+                                f"Started by **{userName}** with **({q.size}/4)**\n" +
+                                f"{mentionStr}\n\n" +
+                                f"Where to meet OOH or Watchers or somewhere else?")
+
+            #start/clear queue in RSQueue - members
+            q.startqueue()
+    
     @commands.command()
     @commands.has_role("Moderator")
     async def listq(self, ctx : commands.Context, *args):

@@ -7,11 +7,13 @@ FORMAT = '%(levelname)s:%(asctime)s:%(module)s:line#%(lineno)s:%(msg)s'
 
 
 rslog = logging.getLogger(name="rsbot")
+rslog.setLevel(logging.DEBUG)
 
-logging.basicConfig(level=logging.DEBUG, filename=filename, format=FORMAT)
+#logging.basicConfig(level=logging.DEBUG, filename=filename, format=FORMAT)
+
 formatter = logging.Formatter(FORMAT)
 
-fileHandler = logging.FileHandler("{0}/{1}.log".format(logPath, filename))
+fileHandler = logging.FileHandler("{0}/{1}".format(logPath, filename))
 consoleHandler = logging.StreamHandler()
 
 fileHandler.setFormatter(formatter)

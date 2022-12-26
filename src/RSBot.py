@@ -16,6 +16,8 @@ import discord
 from discord import Reaction, User, types, app_commands, errors
 from discord.ext import commands
 
+from rsbot_logger import rslog, FORMAT
+
 #from discord.ext.commands.bot import PrefixType
 
 from discord.ext.commands._types import *
@@ -26,9 +28,9 @@ from cogs.BotInfo import BotInfo
 logger = logging.getLogger('discord')
 
 if BUILD_TYPE == BUILD_TYPE.RELEASE:
-	logging.basicConfig(level=logging.INFO, filename='RSQueueBot.log')
+	logging.basicConfig(level=logging.INFO, filename='RSQueueBot.log', format=FORMAT)
 else:
-	logging.basicConfig(level=logging.INFO)
+	logging.basicConfig(level=logging.INFO, format=FORMAT)
 
 help_cmd = commands.DefaultHelpCommand(show_parameter_descriptions=False, no_category='General')
 client : commands.Bot = commands.Bot(intents=discord.Intents.all(), 
@@ -77,7 +79,7 @@ async def on_reaction_add(reaction : Reaction, user : User):
 
 async def main():
 	TYPE_CHECKING = False
-	print("Starting RSBot")
+	rslog.debug("Starting RSBot")
 
 	# HelpCommand('help', cm)
 

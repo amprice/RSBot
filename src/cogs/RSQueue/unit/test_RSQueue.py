@@ -334,7 +334,7 @@ async def test_adduser_basicAddDuplicateUserId(testdata, userTestData):
 
 	# method under test
 	assert q.addUser(userId=userTestData.uId1, userName=userTestData.userName1) == True
-	assert q.addUser(userId=userTestData.uId1, userName=userTestData.userName1) == False
+	assert q.addUser(userId=userTestData.uId1, userName=userTestData.userName1) == True
 
 	assert len(q.members) == 1
 	assert q.members[0].name == userTestData.userName1
