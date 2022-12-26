@@ -120,24 +120,24 @@ class QueueView(View):
         isEditMessage : bool = False
         #await interaction.response.send_message(f"Join Queue {self.queue}")
         await self.callback.JoinQueue(self.queue, interaction.user.name, interaction.user.id, isEditMessage)
-        await interaction.response.edit_message()
+        await interaction.response.defer()
         
     @discord.ui.button(label="Leave", style=discord.ButtonStyle.red, emoji="<:cross_mark:1056558747520077934>")
     async def leave_callback(self, interaction : discord.Interaction, button : discord.ui.Button):
         await self.callback.LeaveQueue(self.queue, interaction.user.name, interaction.user.id)
-        await interaction.response.edit_message()
+        await interaction.response.defer()
 
     @discord.ui.button(label="Start", style=discord.ButtonStyle.grey, emoji="🚀")
     async def start_callback(self, interaction : discord.Interaction, button : discord.ui.Button):
         await self.callback.startQueue(self.queue, interaction.user.name)
-        await interaction.response.edit_message()
+        await interaction.response.defer()
 
     @discord.ui.button(label="", row=1, style=discord.ButtonStyle.green, emoji="<:croid:1032938396353560576>")
     async def addcroid_callback(self, interaction : discord.Interaction, button : discord.ui.Button):
         isCroid : bool = True
         isEditMessage : bool = True
         await self.callback.JoinQueue(self.queue, interaction.user.name, interaction.user.id, isEditMessage, isCroid)
-        await interaction.response.edit_message()
+        await interaction.response.defer()
         
     def __init__(self, queue : int, timeout: float = 180):
         super().__init__(timeout=timeout)
