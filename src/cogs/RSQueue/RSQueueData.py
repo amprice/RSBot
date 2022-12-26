@@ -8,6 +8,7 @@ from botSystem import BUILD_TYPE
 import asyncio
 import discord
 from discord.ext import commands, tasks
+from discord.ui import Button, View
 from datetime import datetime, timedelta
 
 from mongodb import Mongodb
@@ -33,7 +34,7 @@ elif (BUILD_TYPE == BUILD_TYPE.UNIT_TESTING or BUILD_TYPE == BUILD_TYPE.RELEASE)
     STALE_REACT_TIMEOUT = 5 # mins
 
 class MemberInfo():
-    def __init__(self, name : str, userId : int, queue : str, guildId : int = None):
+    def __init__(self, name : str, userId : int, queue : str, guildId : int = None, croid : bool = False):
         current_time = self.now()
         # Database Stored Information
         self.name : str = name
@@ -41,6 +42,7 @@ class MemberInfo():
         self.guildId : int = guildId
         self.runs = {}
         self.runs[queue.__str__()] = 0
+        self.croid : bool = croid
         self.databaseId = None
 
         self.queue = queue.__str__()
@@ -109,6 +111,44 @@ class MemberInfo():
     def now(self):
         return datetime.now()
 
+class QueueView(View):
+    
+    callback = None
+    
+    @discord.ui.button(label="Join", style=discord.ButtonStyle.green, emoji="<:tick_mark:1056560138137378837>")
+    async def join_callback(self, interaction : discord.Interaction, button : discord.ui.Button):
+        isEditMessage : bool = False
+        #await interaction.response.send_message(f"Join Queue {self.queue}")
+        await self.callback.JoinQueue(self.queue, interaction.user.name, interaction.user.id, isEditMessage)
+        await interaction.response.defer()
+        
+    @discord.ui.button(label="Leave", style=discord.ButtonStyle.red, emoji="<:cross_mark:1056558747520077934>")
+    async def leave_callback(self, interaction : discord.Interaction, button : discord.ui.Button):
+        await self.callback.LeaveQueue(self.queue, interaction.user.name, interaction.user.id)
+        await interaction.response.defer()
+
+    @discord.ui.button(label="Start", style=discord.ButtonStyle.grey, emoji="🚀")
+    async def start_callback(self, interaction : discord.Interaction, button : discord.ui.Button):
+        await self.callback.startQueue(self.queue, interaction.user.name)
+        await interaction.response.defer()
+
+    @discord.ui.button(label="", row=1, style=discord.ButtonStyle.green, emoji="<:croid:1032938396353560576>")
+    async def addcroid_callback(self, interaction : discord.Interaction, button : discord.ui.Button):
+        isCroid : bool = True
+        isEditMessage : bool = True
+        await self.callback.JoinQueue(self.queue, interaction.user.name, interaction.user.id, isEditMessage, isCroid)
+        await interaction.response.defer()
+        
+    def __init__(self, queue : int, timeout: float = 180):
+        super().__init__(timeout=timeout)
+        
+        self.queue = queue
+ 
+        
+        #self.add_item(self.joinButton)
+        
+   
+   
 class RSQueue:
 
     # Used when starting up to recover previous queue config if any
@@ -118,7 +158,7 @@ class RSQueue:
     #     result = self.db.findRecord('QueueCfg', self.searchKey)
 
     #     if result != None:
-
+    callback = None
 
     def __init__(self, queueId :str, guildId : int = None, queueName : str = None, queueRole: str = None, queueRoleId : str = None, channel : str = None, channelId : int = None, refreshRate : float = None):
         self.guildId = guildId
@@ -139,7 +179,9 @@ class RSQueue:
 
         self.members : typing.List[MemberInfo] = []
         self.lastQueueMessage : discord.Message = None
-
+        self.view : QueueView = QueueView(queueId, 0)
+        QueueView.callback = self.callback
+        
         self.db = Mongodb()
 
         # self.db.setCollection(self.role)
@@ -201,18 +243,21 @@ class RSQueue:
                     return True
         return False
 
-    def addUser(self, userName, userId):
+    def addUser(self, userName, userId, croid : bool = False):
         
         if len(self.members) < 4:
             
             # add user to the RS queue
             for user in self.members:
                 if user.userId == userId:
-                    #user Id found so dont add again for now
-                    return False
+                    if user.croid == True:
+                        user.croid = False
+                    else:
+                        user.croid = croid
+                    return True
 
             # User not found in queue so add to list
-            user = MemberInfo(name=userName, userId=userId, guildId=self.guildId, queue=self.queueId)
+            user = MemberInfo(name=userName, userId=userId, guildId=self.guildId, queue=self.queueId, croid=croid)
             self.members.append(user)
             self.size += 1
             return True
@@ -279,25 +324,6 @@ class RSQueue:
             return True
         else:
             return False
-        
-        # rec = self.db.findRecord(self.role, {'queue': self.queueId})
-        # #print ('----------------------------------')
-        # #pprint.pprint(rec)
-        # inQ = rec['currentSize']
-        # if (inQ < 4):
-        #     rec['queuedUsers'][inQ] = name
-        #     rec['currentSize'] += 1
-        # else:
-        #     return QueueStatus.QUEUE_FULL
-
-        # #pprint.pprint(rec)
-        # if (None == self.db.updateOne(self.role, self.searchKey, rec)):
-        #     return QueueStatus.QUEUE_ERROR
-        # else:
-        #     if rec['currentSize'] == 4:
-        #         return QueueStatus.QUEUE_COMPLETE
-        #     else:
-        #         return QueueStatus.QUEUE_AVAILABLE
 
     async def printQueue(self, channel):
         queue_embed = discord.Embed(color=discord.Color.blue(), title=self.name, description='Dummy Queue Print Test')
@@ -348,8 +374,12 @@ class RSQueue:
             runs = self.members[i].runs
             key = queue.__str__()
             run_value = runs[queue.__str__()]
-            usersStrings += f"{i+1}. `{self.members[i].name}` [{run_value} runs] 🕒 {time} min\n"
-
+            usersStrings += f"{i+1}. `{self.members[i].name}` [{run_value} runs] 🕒 {time} min"
+            if (self.members[i].croid):
+                usersStrings += " <:croid:1032938396353560576>\n"
+            else:
+                usersStrings += "\n"
+                
         return usersStrings
 
 if __name__ == '__main__':

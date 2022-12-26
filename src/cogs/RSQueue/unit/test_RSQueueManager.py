@@ -481,6 +481,7 @@ async def test_CheckForStaleMembers_OneStaleMemberTimedOut(monkeypatch):
 	rsqueue_mock.getStaleMembers = MagicMock(return_value=expected_userId_stale_members)
 	rsqueue_mock.getStaleMembersWhoTimedOut = MagicMock(return_value=expected_userId_stale_members)
 	rsqueue_mock.lastQueueMessage = MagicMock(spec=discord.Message)
+	rsqueue_mock.view = MagicMock(spec=discord.ui.View)
 	expected_privateMessage = PrivateMessage(message=message_mock, userId=10000, queue=rsqueue_mock, memInfo=expected_memInfo)
 	expected_privateMessages = [expected_privateMessage]
 
