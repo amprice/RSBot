@@ -1,4 +1,3 @@
-from turtle import color
 from aiohttp import request
 import asyncio
 import threading

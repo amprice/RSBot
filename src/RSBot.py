@@ -86,15 +86,12 @@ async def main():
 	
 	# await client.load_extension(name="RSQueueManager")
 
-	if (BUILD_TYPE == BUILD_TYPE.RELEASE):
-		path = PurePath("./cogs")
-	else:
-		path = PurePath("./src/cogs")
-		print(f"Using Path to find cogs: {path}") 
-		# if __debug__:
-		# 	cogs = 'cogs'
-		# else:
-		# 	cogs = 'cogs'
+	path = PurePath("./src/cogs")
+	print(f"Using Path to find cogs: {path}") 
+	# if __debug__:
+	# 	cogs = 'cogs'
+	# else:
+	# 	cogs = 'cogs'
 	for module in os.listdir(path):
 		print (f'{module}')
 		
