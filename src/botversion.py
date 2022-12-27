@@ -3,7 +3,7 @@ from utility import searchFile
 
 githashFilename = '.githash'
 
-SW_ID = "V0.1"
+SW_ID = "V0.2"
 
 def getGitHash():
     #print("in getGitHash()")

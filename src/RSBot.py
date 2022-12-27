@@ -28,9 +28,15 @@ from cogs.BotInfo import BotInfo
 logger = logging.getLogger('discord')
 
 if BUILD_TYPE == BUILD_TYPE.RELEASE:
-	logging.basicConfig(level=logging.INFO, filename='RSQueueBot.log', format=FORMAT)
+	logger.setLevel(logging.WARN)
+	fileHandler = logging.FileHandler("{0}/{1}".format('.', 'discord.log'))
+	logger.addHandler(fileHandler)
 else:
-	logging.basicConfig(level=logging.INFO, format=FORMAT)
+    logger.setLevel(logging.INFO)
+    streamHandler = logging.StreamHandler()
+    fileHandler = logging.FileHandler("{0}/{1}".format('.', 'discord.log'))
+    logger.addHandler(streamHandler)
+    logger.addHandler(fileHandler)
 
 help_cmd = commands.DefaultHelpCommand(show_parameter_descriptions=False, no_category='General')
 client : commands.Bot = commands.Bot(intents=discord.Intents.all(), 
@@ -86,15 +92,12 @@ async def main():
 	
 	# await client.load_extension(name="RSQueueManager")
 
-	if (BUILD_TYPE == BUILD_TYPE.RELEASE):
-		path = PurePath("./cogs")
-	else:
-		path = PurePath("./src/cogs")
-		print(f"Using Path to find cogs: {path}") 
-		# if __debug__:
-		# 	cogs = 'cogs'
-		# else:
-		# 	cogs = 'cogs'
+	path = PurePath("./src/cogs")
+	print(f"Using Path to find cogs: {path}") 
+	# if __debug__:
+	# 	cogs = 'cogs'
+	# else:
+	# 	cogs = 'cogs'
 	for module in os.listdir(path):
 		print (f'{module}')
 		

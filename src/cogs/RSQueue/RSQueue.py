@@ -14,7 +14,7 @@ import pprint
 from enum import Enum
 import typing
 from cogs.RSQueue.RSQueueData import MemberInfo, RSQueue
-
+from rsbot_logger import rslog
 
 emoji : typing.Dict[str, str] = {
     "nosanc": "<:nosanc:1032935233298903100>",
@@ -77,8 +77,13 @@ class RSQueueManager(commands.Cog, name="RS Queue"):
         
         self.privateMessages : typing.List[PrivateMessage] = []
         
-        
+    def getUserNameFromContext(self, ctx : commands.Context) -> str:
+        name = ctx.author.nick
 
+        if (name == None):
+            name = ctx.author.name
+    
+        return name     
 
     async def handelReaction(self, reaction : Reaction, user : User):
         print ('handleReaction')
@@ -279,8 +284,9 @@ class RSQueueManager(commands.Cog, name="RS Queue"):
         if (len(args) == 1 and self.can_convert_to_int(args[0])):
             queueIndex = int(args[0])
 
-            name = ctx.author.name
+            name = self.getUserNameFromContext(ctx)
             userId = ctx.author.id
+            
             # join queue
             await self.JoinQueue(queueIndex=queueIndex, userName=name, userId=userId)
 
@@ -289,6 +295,8 @@ class RSQueueManager(commands.Cog, name="RS Queue"):
             pass
 
     async def JoinQueue(self, queueIndex : int, userName : str, userId : int, editMessage : bool = False, croid : bool = False):
+        
+        rslog.info(f'JoinQueue RS{queueIndex} by {userName}')
         
         success : bool = RSQueueManager.qs[queueIndex].addUser(userName, userId, croid)
         if (success):
@@ -359,7 +367,7 @@ class RSQueueManager(commands.Cog, name="RS Queue"):
         if (len(args) == 1 and self.can_convert_to_int(args[0])):
             queueIndex = int(args[0])
 
-            name = ctx.author.name
+            name = self.getUserNameFromContext(ctx)
             userId = ctx.author.id
            
             await self.LeaveQueue(queueIndex=queueIndex, userName=name, userId=userId)
@@ -404,7 +412,8 @@ class RSQueueManager(commands.Cog, name="RS Queue"):
         if (len(args) == 1 and self.can_convert_to_int(args[0])):
             queueIndex = int(args[0])
             
-            await self.startQueue(queueIndex=queueIndex, userName=ctx.author.name)
+            name = self.getUserNameFromContext(ctx)
+            await self.startQueue(queueIndex=queueIndex, userName=name)
         else:
             # show command help
             await ctx.message.channel.send('Invalid arguments: use \'-s <queue_level>\'')
