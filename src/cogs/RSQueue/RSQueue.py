@@ -15,34 +15,7 @@ from enum import Enum
 import typing
 from cogs.RSQueue.RSQueueData import MemberInfo, RSQueue
 from rsbot_logger import rslog
-
-emoji : typing.Dict[str, str] = {
-    "nosanc": "<:nosanc:1032935233298903100>",
-    "omega_shield": "<:omega_shield:1032943691981139998>",
-    "passive_shield" : "<:passive_shield:1032938383170875423>",
-    "dart" : "<:dart1:1032938403941060648>",
-    "barrage" : "<:barrage:1032938379475685376>",
-    "laser" : "<:laser:1032938402141720576>",
-    "dual_laser": "<:dual_laser:1032943690135650314>",
-    "mass" : "<:mass:1032938405786570813>",
-    "batt" : "<:batt:1032938399830650911>",
-    "suppress" : "<:suppress:1032938392603873350>",
-    "unity" : "<:unity:1032938390812897330>",
-    "rse" : "<:rse:1032938388896104478>",
-    "tw" : "<:tw:1032938387021254657>",
-    "bond" : "<:bond:1032938381266649098>",
-    "veng" : "<:veng:1032938377680535552>",
-    "remote" : "<:remote:1032938375629520926>",
-    "tele" : "<:tele:1032938373658185768>",
-    "no_tele" :"<:notele:1033163905540821063>",
-    "solo1": "💪",
-    "solo2" : "🦾",
-    "croid" : "<:croid:1032938396353560576>",
-    "time": "🕒",
-     "obstain" : "✊",
-     "upvote" : "👍",
-     "downvote" : "👎"
-}
+from emoji import emoji, Mods
 
 class PrivateMessage():
 
@@ -84,7 +57,7 @@ class RSQueueManager(commands.Cog, name="RS Queue"):
             name = ctx.author.name
     
         return name     
-
+        
     async def handelReaction(self, reaction : Reaction, user : User):
         print ('handleReaction')
         
@@ -512,9 +485,8 @@ class RSQueueManager(commands.Cog, name="RS Queue"):
                     
                     await self.sendQueueStatus(q, False)
         else:
-            await ctx.channel.send("Printing Dummy Queue with RSMods")
-            qEmbed = self.printQueueEmbed(ctx)
-            await ctx.channel.send(embed=qEmbed[0])
+            pass
+            #TODO: Add help hint
 
     # Run Loop Activity Methods
     async def QueueRefreshToChannel(self, q : RSQueue):
@@ -663,46 +635,6 @@ class RSQueueManager(commands.Cog, name="RS Queue"):
                 await asyncio.sleep(1)
         await self.bot.wait_until_ready()  # wait until the bot logs in
 
-
-    def printQueueEmbed(self, ctx : commands.Context, queueData = None):
-        file = discord.File("resources/red_star.png", filename="red_star.png")
-        file_thumbnail = discord.File("resources/Default_Queue_Thumbnail.png", filename="Default_Queue_Thumbnail.png")
-        #queue_embed = discord.Embed(color=discord.Color.blue(), title=self.name, description='Dummy Queue Print Test')
-        emb = discord.Embed(title="<:redstar:1032938394562613248> RS7 Queue \t\t (4/4)",
-            description="Use command **-i x** to join queue and **-o x** to leave queue\n" +
-                "e.g. **-i 7** or **-o 7** for RS7\n",
-            color=discord.Color.dark_blue())
-        # emb.set_author(name="<:redstar:1032938394562613248> RS7 Queue \t\t (4/4)",
-        #     icon_url="attachment://red_star.png")
-        emb.set_footer(text="Run ID: 39574389230", icon_url=None)
-
-        #emb.set_thumbnail(url="attachment://red_star.png")
-        
-        # print (ctx.guild.icon.url)
-        #emb.set_thumbnail(url=ctx.guild.icon.url)
-
-        guild = self.bot.get_guild(RSQueueManager.qs[7].guildId)
-        emb.set_thumbnail(url=guild.icon.url)
-
-        # emb.set_thumbnail(url="attachment://Default_Queue_Thumbnail.png")
-        tempTest = f"{emoji['nosanc']} {emoji['barrage']} {emoji['omega_shield']}"
-
-        emb.add_field(value=f"1. `LD` \t {tempTest} \t \[5 runs\] \t 🕒 0m\n" +
-                "2. `Player 2` some feature based string goes here 🕒 3m \n"
-                "3. `Player 3` some feature based string goes here\n" +
-                "4. `Player 4` blah blah blah goes here",
-            name="\u200b")
-        
-        # emb.set_thumbnail(url=None)
-        #emb.add_field(name="Members",
-        #    value=,
-        #         inline=False)
-        #emb.add_field(name='\u200b', value="Player 2 some feature based string goes here", inline=False)
-        #emb.add_field(name="Player 3 some feature based string goes here", value='\u200b', inline=False)
-        #emb.add_field(name="Player 4 some feature based string goes here", value=None, inline=False)
-        return (emb, file_thumbnail)
-
-
     def emojitesting(self):
         emojiStr = ""
         for key in emoji.keys():
@@ -721,11 +653,31 @@ class RSQueueManager(commands.Cog, name="RS Queue"):
         except ValueError:
             return False
 
+    def setRSMod(self, userId : int, rsmod : Mods):
+        name = ""
+        user = self.bot.get_user(userId)
+        if (user.display_name != None):
+            name = user.display_name
+        else:
+            name = user.name
+       
+        userInfo = MemberInfo(userId=userId, name=name)
+        userInfo.UpdateUserRSModsInDatabase(userId, rsmod)
+    
+    def getRSMod(self, userId) -> Mods:
+        name = ""
+        user = self.bot.get_user(userId)
+        if (user.display_name != None):
+            name = user.display_name
+        else:
+            name = user.name
+            
+        userInfo = MemberInfo(userId=userId, name=name)
+        return userInfo.rsMods
 
 async def setup(bot : commands.bot):
-    print ("Loading Cog: RSQueueManager")
+    rslog.debug ("Adding Cog: RSQueue")
     await bot.add_cog(RSQueueManager(bot))
 
 if __name__ == '__main__':
-    print ('Here')
     sys.path .insert(1, '../../') # allow the unit test files to be in "./unit" folder

@@ -10,6 +10,7 @@ from pprint import pprint
 import json
 
 from discord.ext import commands
+from rsbot_logger import rslog
 
 class Quotes(commands.Cog, name="Quotes"):
 
@@ -57,7 +58,7 @@ class Quotes(commands.Cog, name="Quotes"):
 
 
 async def setup(bot : commands.bot):
-    print ("Loading Cog: Qutotes")
+    rslog.debug("Adding Cog: Qutotes")
     await bot.add_cog(Quotes(bot), guilds = [discord.Object(id=939859311847415818)])
     
     

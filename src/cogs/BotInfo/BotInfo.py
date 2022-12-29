@@ -6,6 +6,7 @@ from discord.ext import commands, tasks
 
 
 from datetime import datetime
+from rsbot_logger import rslog
 
 import pprint
 import typing
@@ -77,5 +78,5 @@ class BotInfo(commands.Cog, name="BotInfo"):
 			return
 
 async def setup(bot : commands.bot):
-    print ("Loading Cog: BotInfo")
+    rslog.debug("Adding Cog: BotInfo")
     await bot.add_cog(BotInfo(bot), guilds = [discord.Object(id=939859311847415818)])

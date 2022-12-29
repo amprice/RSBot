@@ -69,12 +69,12 @@ async def on_command_error(ctx, exception):
 @client.event
 async def on_ready():
 
-	print('We Have logged in as {0.user}'.format(client))
+	rslog.info('We Have logged in as {0.user}'.format(client))
 
 
 @client.event
 async def on_reaction_add(reaction : Reaction, user : User):
-	print ('on_reaction_add')
+	rslog.debug(f'Add Reaction by {user.name} {user.id}')
 	
 	if user.id == client.user.id:
 		return
@@ -85,7 +85,7 @@ async def on_reaction_add(reaction : Reaction, user : User):
 
 async def main():
 	TYPE_CHECKING = False
-	rslog.debug("Starting RSBot")
+	rslog.info("Starting RSBot")
 
 	# HelpCommand('help', cm)
 
@@ -93,18 +93,13 @@ async def main():
 	# await client.load_extension(name="RSQueueManager")
 
 	path = PurePath("./src/cogs")
-	print(f"Using Path to find cogs: {path}") 
-	# if __debug__:
-	# 	cogs = 'cogs'
-	# else:
-	# 	cogs = 'cogs'
+	rslog.debug(f"Using Path to find cogs: {path}") 
+
 	for module in os.listdir(path):
-		print (f'{module}')
-		
 		path_to_cog = path.joinpath(f"{module}/{module}.py")
-		print (path_to_cog)
+		rslog.debug(f'Cog Filename: {path_to_cog}')
 		if os.path.exists(path_to_cog):
-			print(f"cogs.{module}.{module}")
+			rslog.info(f'Loading Cog: cogs.{module}.{module}')
 			await client.load_extension(name=f"cogs.{module}.{module}")
 
 	sBotInfo : BotInfo = client.get_cog("BotInfo")
