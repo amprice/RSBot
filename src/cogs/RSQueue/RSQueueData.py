@@ -15,8 +15,9 @@ from mongodb import Mongodb
 import pprint
 from enum import Enum
 import typing
-
 import time
+
+from emoji import Mods
 class QueueStatus(Enum):
         QUEUE_AVAILABLE = 1,
         QUEUE_COMPLETE = 2,
@@ -34,7 +35,7 @@ elif (BUILD_TYPE == BUILD_TYPE.UNIT_TESTING or BUILD_TYPE == BUILD_TYPE.RELEASE)
     STALE_REACT_TIMEOUT = 5 # mins
 
 class MemberInfo():
-    def __init__(self, name : str, userId : int, queue : str, guildId : int = None, croid : bool = False):
+    def __init__(self, name : str, userId : int, queue : str = "", guildId : int = None, croid : bool = False):
         current_time = self.now()
         # Database Stored Information
         self.name : str = name
@@ -43,6 +44,9 @@ class MemberInfo():
         self.runs = {}
         self.runs[queue.__str__()] = 0
         self.croid : bool = croid
+        self.rsModString = ""
+        self.rsMods : Mods = Mods()
+        
         self.databaseId = None
 
         self.queue = queue.__str__()
@@ -64,7 +68,9 @@ class MemberInfo():
                         {'userId' : self.userId,
                         'userName' : self.name,
                         'guildId' : self.guildId,
-                        'runs' : self.runs} )
+                        'runs' : self.runs,
+                        'rsModString' : self.rsModString,
+                        'rsMods' : self.rsMods.status} )
                 self.databaseId = upsert_result.upserted_id
             elif self.name == None:
                 # No Record found in DB and no config data to write
@@ -76,6 +82,10 @@ class MemberInfo():
             #self.name = result['userName']
             self.userId = result['userId']
             self.runs = result['runs']
+            if ('rsModString' in result.keys()):
+                self.rsModString = result['rsModString']
+                self.rsMods.status = result['rsMods']
+                self.rsMods.sortDictByKey()
 
             key = queue.__str__()
             if (key not in self.runs):
@@ -99,9 +109,26 @@ class MemberInfo():
                         {'userId' : self.userId,
                         'userName' : self.name,
                         'guildId' : self.guildId,
-                        'runs' : self.runs} )
+                        'runs' : self.runs,
+                        'rsModString' : self.rsModString,
+                        'rsMods' : self.rsMods.status} )
 
         return (upsert_result != None)
+
+    def UpdateUserRSModsInDatabase(self, userId : int, rsmods : Mods):
+        upsert_result = None
+
+        # current private data valid if we have database Id Key then update record
+        if (self.databaseId != None):
+            upsert_result = self.db.updateOne('Account', 
+                    {'_id': self.databaseId}, 
+                        {'userId' : self.userId,
+                        'rsModString' : rsmods.modString(),
+                        'rsMods' : rsmods.status,
+                        'guildId' : rsmods.guild.id} )
+
+        return (upsert_result != None)
+
 
     def refreshStaleStatus(self):
         self.staleMessage = None
@@ -377,7 +404,7 @@ class RSQueue:
             runs = self.members[i].runs
             key = queue.__str__()
             run_value = runs[queue.__str__()]
-            usersStrings += f"{i+1}. `{self.members[i].name}` [{run_value} runs] 🕒 {time} min"
+            usersStrings += f"{i+1}. `{self.members[i].name}` {self.members[i].rsModString} [{run_value} runs] 🕒 {time} min"
             if (self.members[i].croid):
                 usersStrings += " <:croid:1032938396353560576>\n"
             else:

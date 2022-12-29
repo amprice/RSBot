@@ -10,6 +10,7 @@ sys.path .insert(1, '../') # allow the unit test files to be in "./unit" folder
 from cogs.RSQueue.RSQueueData import MemberInfo, RSQueue
 from mongodb import Mongodb
 
+from emoji import Mods
 class AnyStringWith(str):
     def __eq__(self, other):
         return self in other
@@ -145,6 +146,8 @@ UserData = collections.namedtuple(
 def userTestData(monkeypatch):
 	userName1 = "SomeName"
 	uId1 = 11223344
+	rsModString1 = ""
+	rsMods1 = Mods().status
 	userName2 = "Lord"
 	uId2 = 11223355
 	userName3 = "SomeName"	# although confusing user alias could be same?
@@ -175,7 +178,9 @@ def userTestData(monkeypatch):
         'userId' : uId1,
         'userName' : userName1,
         'guildId' : guildId,
-        'runs' : runs}
+        'runs' : runs,
+        'rsModString' : rsModString1,
+        'rsMods' : rsMods1}
 
 	expectedFixDataTime1 : datetime = datetime(year=2022, month=10, day=25, hour=14, minute=10, second=40)
 	expectedFixDataTime2 : datetime = datetime(year=2022, month=10, day=25, hour=14, minute=10, second=45)
@@ -545,7 +550,7 @@ async def test_buildUserStrings_SingleUser(testdata, userTestData):
 	# method under test
 	result = q.buildUserStrings(q.queueId)
 
-	assert result == f"1. `{q.members[0].name}` [{q.members[0].runs[q.queueId]} runs] 🕒 2 min\n"
+	assert result == f"1. `{q.members[0].name}`  [{q.members[0].runs[q.queueId]} runs] 🕒 2 min\n"
 	# assert q.lastQueuePrint == userTestData.expectedFixDataTime1
 	# assert q.isTimeToPrintQueue() == True
 	# assert q.lastQueuePrint == new_datetime
@@ -561,7 +566,7 @@ async def test_buildUserStrings_FourUsers(testdata, userTestData):
 	# usersStrings += f"{i+1}. `{self.members[i].name}` [{self.members[i].runs} runs] 🕒 {time} min\n"
 	time = 2
 	i = 0
-	expectedString = f'{i+1}. `{user_td.userName1}` [{user_td.runs[user_td.queueId.__str__()]} runs] 🕒 {time} min\n'
+	expectedString = f'{i+1}. `{user_td.userName1}`  [{user_td.runs[user_td.queueId.__str__()]} runs] 🕒 {time} min\n'
 	#assert result == f"1. `{q.members[0].name}` [{q.members[0].runs} runs] 🕒 2 min\n"
 
 	#searchKey = {'userId': self.userId} # TODO : check that correct searching key is passed in request
@@ -588,7 +593,7 @@ async def test_startQueue_OneUsers(testdata, userTestData):
  
 	time = 2
 	i = 0
-	expectedString = f'{i+1}. `{user_td.userName1}` [{user_td.runs[user_td.queueId.__str__()]} runs] 🕒 {time} min\n'
+	expectedString = f'{i+1}. `{user_td.userName1}`  [{user_td.runs[user_td.queueId.__str__()]} runs] 🕒 {time} min\n'
 	#assert result == f"1. `{q.members[0].name}` [{q.members[0].runs} runs] 🕒 2 min\n"
 
 	#searchKey = {'userId': self.userId} # TODO : check that correct searching key is passed in request
