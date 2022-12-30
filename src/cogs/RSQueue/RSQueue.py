@@ -240,6 +240,29 @@ class RSQueueManager(commands.Cog, name="RS Queue"):
 
         return emb
 
+    @commands.command()
+    async def guest(self, ctx : commands.Context, *args):
+        '''Adds a guest to an RS Queue 
+
+           Usage: -guest <RS Level>
+               where <RS Level> is value in range 5 .. 11
+
+           Example: 
+               -guest 7
+        '''        
+        if (len(args) == 1 and self.can_convert_to_int(args[0])):
+            queueIndex = int(args[0])
+
+            name = self.getUserNameFromContext(ctx)
+            userId = ctx.author.id
+            
+            # join queue
+            await self.JoinQueue(queueIndex=queueIndex, userName=name, userId=userId, editMessage=False, croid=False, isGuest=True)
+
+        else:
+            #print help
+            pass
+        
     @commands.command(aliases=["i", "in", "j"])
     async def joinq(self, ctx :commands.Context, *args):
         '''Joins an RS Queue 
@@ -267,11 +290,11 @@ class RSQueueManager(commands.Cog, name="RS Queue"):
             #print help
             pass
 
-    async def JoinQueue(self, queueIndex : int, userName : str, userId : int, editMessage : bool = False, croid : bool = False):
+    async def JoinQueue(self, queueIndex : int, userName : str, userId : int, editMessage : bool = False, croid : bool = False, isGuest : bool = False):
         
         rslog.info(f'JoinQueue RS{queueIndex} by {userName}')
         
-        success : bool = RSQueueManager.qs[queueIndex].addUser(userName, userId, croid)
+        success : bool = RSQueueManager.qs[queueIndex].addUser(userName, userId, croid, isGuest)
         if (success):
             # added user to queue
 
@@ -293,7 +316,10 @@ class RSQueueManager(commands.Cog, name="RS Queue"):
             elif (editMessage == False): 
                 # ping queue role of queue addition
                 role = guild.get_role(q.roleId)
-                await channel.send(f'**{userName}** joined {q.name} {role.mention} ({len(q.members)}/4)')
+                if isGuest:
+                    await channel.send(f'**{userName}** joined a guest to {role.mention} Queue ({len(q.members)}/4)')
+                else:
+                    await channel.send(f'**{userName}** joined {role.mention} Queue ({len(q.members)}/4)')
         else:
             #log error
             pass
@@ -317,7 +343,7 @@ class RSQueueManager(commands.Cog, name="RS Queue"):
         #ping members message queue is ready
         await channel.send(f"**{q.name} Ready**\n\n"+
                             f"Started by **{startedBy}** with **({q.size}/4)**\n" +
-                            f"{mentionStr}\n\n" +
+                            f"{mentionStr} {q.getQueuedGuests()} \n\n" +
                             f"Where to meet OOH or Watchers or somewhere else?")
 
         #start/clear queue in RSQueue - members
@@ -349,8 +375,14 @@ class RSQueueManager(commands.Cog, name="RS Queue"):
             #print help
             pass
         
-    async def LeaveQueue(self, queueIndex : int, userName : str, userId : int) -> bool:
-        success : bool = RSQueueManager.qs[queueIndex].delUser(userName=userName, userId=userId)
+    async def LeaveQueue(self, queueIndex : int, userName : str, userId : int, isGuest : bool = False) -> bool:
+        success : bool = False
+        
+        if (isGuest):
+            success = RSQueueManager.qs[queueIndex].delGuest(userId=userId)
+        else:
+            success = RSQueueManager.qs[queueIndex].delUser(userName=userName, userId=userId)
+            
         if (success):
             # added user to queue
 
@@ -362,7 +394,10 @@ class RSQueueManager(commands.Cog, name="RS Queue"):
             
             await self.sendQueueStatus(q, False)
             
-            await channel.send(f'**{userName}** has left {q.name}!')
+            if isGuest:
+                await channel.send(f'**{userName}** has removed a guest from {q.name}!')
+            else:
+                await channel.send(f'**{userName}** has left {q.name}!')
             
         else:
             #log error
@@ -403,24 +438,26 @@ class RSQueueManager(commands.Cog, name="RS Queue"):
                 await channel.send(f"{q.name} ({q.size}/4) is empty and can not be started!")
                 return
 
-            userIds = q.getQueueMemberIds()
-            mentionStr = ""
 
-            for userId in userIds:
-                mentionStr += f"{guild.get_member(userId).mention} "
-                m : Member = guild.get_member(userId)
-                await m.create_dm()
-                await m.send(f"**Your {q.name} is Ready**\n" +
-                                f"You can organize where to run at here {channel.mention}")
+            await self.SendStartQueueMessages(q, userName)
+            # userIds = q.getQueueMemberIds()
+            # mentionStr = ""
 
-            #ping members message queue is ready
-            await channel.send(f"**{q.name} Ready**\n\n"+
-                                f"Started by **{userName}** with **({q.size}/4)**\n" +
-                                f"{mentionStr}\n\n" +
-                                f"Where to meet OOH or Watchers or somewhere else?")
+            # for userId in userIds:
+            #     mentionStr += f"{guild.get_member(userId).mention} "
+            #     m : Member = guild.get_member(userId)
+            #     await m.create_dm()
+            #     await m.send(f"**Your {q.name} is Ready**\n" +
+            #                     f"You can organize where to run at here {channel.mention}")
 
-            #start/clear queue in RSQueue - members
-            q.startqueue()
+            # #ping members message queue is ready
+            # await channel.send(f"**{q.name} Ready**\n\n"+
+            #                     f"Started by **{userName}** with **({q.size}/4)**\n" +
+            #                     f"{mentionStr}\n\n" +
+            #                     f"Where to meet OOH or Watchers or somewhere else?")
+
+            # #start/clear queue in RSQueue - members
+            # q.startqueue()
     
     @commands.command()
     @commands.has_role("Moderator")
@@ -589,7 +626,8 @@ class RSQueueManager(commands.Cog, name="RS Queue"):
         emb.add_field(value = f"There are **{queue.size-1} other members** in your queue!\n\n"
                               f"**Do you want to remain in queue?**\n\n" +
                               f"Please click emoji ✅ to stay or ❎ to leave.\n" +
-                              f"Note: This Message with timeout in 5 min and you will be automatically removed from the queue.",
+                              f"Note: This Message will timeout in 5 min and when timeout occurs\n" +
+                              f"you will be automatically removed from the queue.",
                               name = '\u200b',
                               inline=False)
         emb.set_footer(text=f"Run ID: {queue.qRuns}", icon_url=None)

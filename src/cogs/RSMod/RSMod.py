@@ -55,7 +55,6 @@ class RSMod(commands.Cog, name="RSMod"):
         #self.bot.add_listener(self.on_reaction_add, "on_reaction_add")
         self.rsmodMessages : typing.List[Message] = []
         self.userMods : typing.Dict[int, Mods] = {}
-        self.view = RSModView(self.buildEmbCallback, self.rsModComplete, self.rsModCancelled)
         
     # async def on_reaction_add(self, reaction : Reaction, user : User):
         
@@ -98,7 +97,7 @@ class RSMod(commands.Cog, name="RSMod"):
         self.userMods[ctx.author.id] = rsmods
         
         await m.create_dm() #private DM channel with potentially stale member
-        msg = await m.send(embed=emb, view=self.view)
+        msg = await m.send(embed=emb, view=RSModView(self.buildEmbCallback, self.rsModComplete, self.rsModCancelled))
         # await self.setEmojis(msg, rsmods)
         #await msg.add_reaction('➕')
         #await msg.add_reaction('➖')
@@ -107,7 +106,7 @@ class RSMod(commands.Cog, name="RSMod"):
         self.rsmodMessages.append(msg)
 
     def buildEmbCallback(self, userId : int, rsmodKey : str):
-        self.userMods[userId].status[rsmodKey] = ~self.userMods[userId].status[rsmodKey]
+        self.userMods[userId].status[rsmodKey] = not self.userMods[userId].status[rsmodKey]
         return self.buildRSModMessage(self.userMods[userId].guild, self.userMods[userId])
         
     def buildRSModMessage(self, guild : discord.Guild, rmsmod : Mods):
@@ -121,8 +120,8 @@ class RSMod(commands.Cog, name="RSMod"):
                               name = '\u200b',
                               inline=False)
         
-        emb.add_field(value = f"React to the emoji below to add/remove them.\n\n" + 
-                              f"**Please click emoji ✅ to accept or ❎ to cancel.**\n",
+        emb.add_field(value = f"Click the emoji buttons below to add/remove your mods.\n\n" + 
+                              f"**Please click buttons ✅ to accept or ❎ to cancel.**\n",
                               name = '\u200b',
                               inline=False)
         #emb.set_footer(text=f"Your emoji's selected are: TBA", icon_url=None)

@@ -55,7 +55,9 @@ emoji : typing.Dict[str, str] = {
     "time": "🕒",
      "obstain" : "✊",
      "upvote" : "👍",
-     "downvote" : "👎"
+     "downvote" : "👎",
+     "guest" : "👤",
+     "guest1" : "👥"
 }
 
 class Mods():

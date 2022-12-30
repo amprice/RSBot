@@ -647,8 +647,8 @@ async def test_getStaleMembers_OneStaleUser(testdata, userTestData):
 
 	mock = MagicMock()
 	mock.STALE_QUEUE_PERIOD = 15
-	userTestData.mock_MemberInfo_now.side_effect = [timeNow, timeNow, timeJoinedQueue, timeNow, timeNow]
-	userTestData.mock_RSQueue_now.side_effect = [timeNow, timeNow, timeNow, timeNow, timeNow, timeNow]
+	userTestData.mock_MemberInfo_now.side_effect = [timeNow, timeNow, timeJoinedQueue, timeNow, # used for constucting memberInfo's
+                                                    timeNow, timeNow, timeNow, timeNow, timeNow] # used getting time now (poitive stale check needs +1)
 
 	testdata.mockDb.findRecord.side_effect = [testdata.expectedRecord_QueueCfg, None, None, None, None]
 
@@ -681,9 +681,9 @@ async def test_getStaleMembers_TwoStaleUser(testdata, userTestData):
 
 	mock = MagicMock()
 	mock.STALE_QUEUE_PERIOD = 15
-	userTestData.mock_MemberInfo_now.side_effect = [timeNow, timeJoinedQueue, timeJoinedQueue, timeNow, timeNow]
-	userTestData.mock_RSQueue_now.side_effect = [timeNow, timeNow, timeNow, timeNow, timeNow, timeNow, timeNow]
-
+	userTestData.mock_MemberInfo_now.side_effect = [timeNow, timeJoinedQueue, timeJoinedQueue, timeNow, 
+                                                    timeNow, timeNow, timeNow, timeNow, timeNow, timeNow]
+	
 	testdata.mockDb.findRecord.side_effect = [testdata.expectedRecord_QueueCfg, None, None, None, None]
 
 	q = RSQueue(queueId=testdata.queueId)
@@ -712,13 +712,12 @@ async def test_getStaleMembers_TwoStaleUser(testdata, userTestData):
 @pytest.mark.asyncio
 async def test_getStaleMembersWithTimout_OneStaleUser(testdata, userTestData):
 
-	timeJoinedQueue : datetime = 	    datetime(year=2022, month=10, day=25, hour=14, minute=10, second=0)
 	timeNow : datetime = 		 	    datetime(year=2022, month=10, day=25, hour=14, minute=25, second=0)
 	timeExpireTimeoutWidow : datetime = datetime(year=2022, month=10, day=25, hour=14, minute=30, second=0)
 	mock = MagicMock()
 	mock.STALE_QUEUE_PERIOD = 15
-	userTestData.mock_MemberInfo_now.side_effect = [timeNow, timeNow, timeNow, timeNow, timeNow]
-	userTestData.mock_RSQueue_now.side_effect = [timeNow, timeNow, timeNow, timeExpireTimeoutWidow, timeNow, timeNow]
+	userTestData.mock_MemberInfo_now.side_effect = [timeNow, timeNow, timeNow, timeNow,
+                                                    timeNow, timeNow, timeExpireTimeoutWidow, timeNow, timeNow]
 
 	testdata.mockDb.findRecord.side_effect = [testdata.expectedRecord_QueueCfg, None, None, None, None]
 
