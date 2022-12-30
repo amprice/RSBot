@@ -407,6 +407,7 @@ class RSQueue:
             self.size = len(self.members)
         return isSuccess
 
+    # TODO: Clean up this method
     def addUser(self, userName, userId, croid : bool = False, isGuest : bool = False):
         guestInviterIndex : int = None
         
@@ -428,16 +429,26 @@ class RSQueue:
                     
             if (guestInviterIndex == None and isGuest):
                 # inviter of guest not currently in queue
-                return
-
-            if (isGuest):
-                user = GuestInfo(name=userName, userId=userId, guildId=self.guildId, queue=self.queueId)
-                self.members.insert(i+1, user)
-            else:
+                guestInviterIndex = len(self.members)
+                if len(self.members) < 3:
+                    user = MemberInfo(name=userName, userId=userId, guildId=self.guildId, queue=self.queueId, croid=croid)
+                    self.members.append(user)    
+                    user = GuestInfo(name=userName, userId=userId, guildId=self.guildId, queue=self.queueId)
+                    self.members.insert(guestInviterIndex+1, user)    
+                    self.size += 2 # Todo do we need a seperate size?
+                else:
+                    user = MemberInfo(name=userName, userId=userId, guildId=self.guildId, queue=self.queueId, croid=croid)
+                    self.members.append(user)
+                    self.size += 1 # Todo do we need a seperate size?    
+            elif (isGuest == False):
                 user = MemberInfo(name=userName, userId=userId, guildId=self.guildId, queue=self.queueId, croid=croid)
                 self.members.append(user)
-                
-            self.size += 1
+                self.size += 1 # Todo do we need a seperate size?
+            else:
+                user = GuestInfo(name=userName, userId=userId, guildId=self.guildId, queue=self.queueId)
+                self.members.insert(guestInviterIndex+1, user)
+                self.size += 1 # Todo do we need a seperate size?
+            
             return True
 
         elif len(self.members) == 4:

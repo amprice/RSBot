@@ -111,6 +111,9 @@ class RSQueueManager(commands.Cog, name="RS Queue"):
                 await q.lastQueueMessage.delete()
             q.lastQueueMessage = await channel.send(embed=emb, view=q.view)
 
+    # async def cog_check(self, ctx: commands.Context) -> bool:
+    #     return ctx.prefix == '-' or ctx.prefix == '+'
+    
     # @commands.command()
     # async def hi(self, ctx : commands.Context, *args, **kwargs):
     #     """string B"""
