@@ -13,7 +13,9 @@ from mongodb import Mongodb
 import pprint
 from enum import Enum
 import typing
-from cogs.RSQueue.RSQueueData import MemberInfo, RSQueue
+from cogs.RSQueue.RSQueueData import RSQueue
+from cogs.RSQueue.UserInfo import MemberInfo
+
 from rsbot_logger import rslog
 from emoji import emoji, Mods
 
