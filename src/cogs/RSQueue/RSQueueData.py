@@ -16,6 +16,7 @@ import pprint
 from enum import Enum
 import typing
 import time
+from rsbot_logger import rslog
 
 from emoji import Mods, emoji
 class QueueStatus(Enum):
@@ -35,77 +36,81 @@ elif (BUILD_TYPE == BUILD_TYPE.UNIT_TESTING or BUILD_TYPE == BUILD_TYPE.RELEASE)
     STALE_REACT_TIMEOUT = 5 # mins
 class UserInfo():
     def __init__(self, name : str, userId : int, guildId : int, queue : str = "", croid : bool = False) -> None:
+        rslog.debug("UserInfo.__init__()")
         self.name : str = name
         self.userId : int = userId
         self.queue = queue.__str__()
         self.guildId : int = guildId
         self.croid : bool = croid
-        
-        self.isStaleCheckExempt = False
-        current_time = self.now()
-        self.timeSinceLastQueueActivity = 0
-        self.timeInQueue : datetime = current_time # for ease of testing
-        self.timeSinceLastQueueActivity : datetime = current_time # for ease of testing
-        
         self.rsModString = ""
         
-    def printUserDetails(self):
-        print (f"name:{self.name} Id: {self.userId}")
-
     def addRun(self):
-        pass
+        rslog.error("UserInfo.addRun()")
 
     def UpdateUserRecordInDatabase(self):
+        rslog.error("UserInfo.UpdateUserRecordInDatabase()")
         return (False)
 
     def UpdateUserRSModsInDatabase(self, userId : int, rsmods : Mods):
+        rslog.error("UserInfo.UpdateUserRSModsInDatabase()")
         return (False)
 
-
     def refreshStaleStatus(self):
-        pass
+        rslog.error("UserInfo.refreshStaleStatus()")
         
-    def now(self):
-        return datetime.now()
-
     def getRuns(self, queue : int) -> int:
+        rslog.error("UserInfo.getRuns()")
         return 0
 
     def getName(self) -> str:
+        rslog.error("UserInfo.getName()")
         return ""
     
+    def getTimeInQueue(self) -> datetime:
+        rslog.debug("UserInfo.getTimeInQueue()")
+        return datetime.now()
+    
     def isStale(self) -> bool:
+        rslog.error("UserInfo.isStale()")
         return False
     
     def isGuest(self) -> bool:
+        rslog.debug("UserInfo.isGuest()")
         return False
     
     def isReactStale(self) -> bool:
+        rslog.debug("UserInfo.isReactStale()")
         return False
+    
+    def now(self):
+        rslog.error("UserInfo.now()")
+        return None
     
 #GuestInfo(name=userName, userId=userId, guildId=self.guildId, queue=self.queueId)    
 class GuestInfo(UserInfo):
     def __init__(self, name : str, userId : int, queue : str = "", guildId : int = None) -> None:
+        rslog.debug("GuestInfo.__init__()")
         super().__init__(name=name, userId=userId, guildId=guildId, queue=queue, croid=False)
         
-        self.isStaleCheckExempt = True
-
     def getName(self) -> str:
+        rslog.debug("GuestInfo.getName()")
         name = f"{emoji['guest']} Guest ({self.name})"
         return name
         
     def isStale(self) -> bool:
+        rslog.debug("GuestInfo.isStale()")
         # By pass stale check for guest entries
         return False           
     
     def isGuest(self) -> bool:
+        rslog.debug("GuestInfo.isGuest()")
         return True
     
-    def now(self):
-        return super().now()
+
     
 class MemberInfo(UserInfo):
     def __init__(self, name : str, userId : int, queue : str = "", guildId : int = None, croid : bool = False):
+        rslog.debug("MemberInfo.__init__()")
         super().__init__(name=name, userId=userId, guildId=guildId, queue=queue, croid=croid)
         # current_time = self.now()
         # Database Stored Information
@@ -119,7 +124,12 @@ class MemberInfo(UserInfo):
         self.rsMods : Mods = Mods()
         
         self.databaseId = None
-
+        
+        # Items for stale checking
+        current_time = self.now()
+        self.timeSinceLastQueueActivity = 0
+        self.timeInQueue : datetime = current_time # for ease of testing
+        self.timeSinceLastQueueActivity : datetime = current_time # for ease of testing
         
         # self.timeInQueue : datetime = current_time # for ease of testing
         # self.timeSinceLastQueueActivity : datetime = current_time # for ease of testing
@@ -168,9 +178,11 @@ class MemberInfo(UserInfo):
     #     return {'name': self.name, 'userId': self.userId}
 
     def addRun(self):
+        rslog.debug("MemberInfo.addRun()")
         self.runs[self.queue] = self.runs[self.queue] + 1
 
     def UpdateUserRecordInDatabase(self):
+        rslog.debug("MemberInfo.UpdateUserRecordInDatabase()")
         upsert_result = None
 
         # current private data valid if we have database Id Key then update record
@@ -187,6 +199,7 @@ class MemberInfo(UserInfo):
         return (upsert_result != None)
 
     def UpdateUserRSModsInDatabase(self, userId : int, rsmods : Mods):
+        rslog.debug("MemberInfo.UpdateUserRSModsInDatabase()")
         upsert_result = None
 
         # current private data valid if we have database Id Key then update record
@@ -202,6 +215,7 @@ class MemberInfo(UserInfo):
 
 
     def refreshStaleStatus(self):
+        rslog.debug("MemberInfo.refreshStaleStatus()")
         self.staleMessage = None
         self.isStalechecking = False
         self.timeSinceLastQueueActivity = self.now()
@@ -210,16 +224,19 @@ class MemberInfo(UserInfo):
     #     return datetime.now()
 
     def getRuns(self, queue : int) -> int:
+        rslog.debug("MemberInfo.getRuns()")
         return self.runs[queue.__str__()]
     
     def getName(self) -> str:
+        rslog.debug("MemberInfo.getName()")
         return self.name
     
     def isStale(self) -> bool:
-        timenow = self.now()
-        delta = timenow - self.timeSinceLastQueueActivity
-        t = delta.total_seconds()
-        #t = int((self.now() - self.timeSinceLastQueueActivity).total_seconds())
+        rslog.debug("MemberInfo.isStale()")
+        # timenow = self.now()
+        # delta = timenow - self.timeSinceLastQueueActivity
+        # t = delta.total_seconds()
+        t = int((self.now() - self.timeSinceLastQueueActivity).total_seconds())
         if (t >= STALE_QUEUE_PERIOD * 60) and self.isStalechecking == False:
             # collect ids for stale check
             self.isStalechecking = True
@@ -228,6 +245,7 @@ class MemberInfo(UserInfo):
         return False 
     
     def isReactStale(self) -> bool:
+        rslog.debug("MemberInfo.isReactStale()")
         t = int((self.now() - self.timeSinceLastQueueActivity).total_seconds())
         if (t >= STALE_REACT_TIMEOUT * 60) and self.isStalechecking == True:
             # collect ids for who timed out
@@ -236,11 +254,13 @@ class MemberInfo(UserInfo):
             return True
         return False
     
-    def printUserDetails(self):
-        print (f"name:{self.name} Id:{self.userId} GuildId:{self.guildId}")
-        
+    def getTimeInQueue(self) -> datetime:
+        rslog.debug("MemberInfo.getTimeInQueue()")
+        return self.timeInQueue
+    
     def now(self):
-        return super().now()
+        rslog.debug("MemberInfo.now()")
+        return datetime.now()
         
 class QueueView(View):
     
@@ -568,7 +588,7 @@ class RSQueue:
         #     name="\u200b")
 
         for i in range(len(self.members)):
-            time_float = (self.now() - self.members[i].timeInQueue).total_seconds() / 60
+            time_float = (self.now() - self.members[i].getTimeInQueue()).total_seconds() / 60
             time = int(time_float)
 
             # runs = self.members[i].runs

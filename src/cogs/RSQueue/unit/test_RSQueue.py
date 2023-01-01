@@ -679,8 +679,7 @@ async def test_getStaleMembers_TwoStaleUser(testdata, userTestData):
 	timeJoinedQueue : datetime = datetime(year=2022, month=10, day=25, hour=14, minute=10, second=0)
 	timeNow : datetime = 		 datetime(year=2022, month=10, day=25, hour=14, minute=40, second=0)
 
-	mock = MagicMock()
-	mock.STALE_QUEUE_PERIOD = 15
+
 	userTestData.mock_MemberInfo_now.side_effect = [timeNow, timeJoinedQueue, timeJoinedQueue, timeNow, 
                                                     timeNow, timeNow, timeNow, timeNow, timeNow, timeNow]
 	
@@ -714,8 +713,7 @@ async def test_getStaleMembersWithTimout_OneStaleUser(testdata, userTestData):
 
 	timeNow : datetime = 		 	    datetime(year=2022, month=10, day=25, hour=14, minute=25, second=0)
 	timeExpireTimeoutWidow : datetime = datetime(year=2022, month=10, day=25, hour=14, minute=30, second=0)
-	mock = MagicMock()
-	mock.STALE_QUEUE_PERIOD = 15
+	
 	userTestData.mock_MemberInfo_now.side_effect = [timeNow, timeNow, timeNow, timeNow,
                                                     timeNow, timeNow, timeExpireTimeoutWidow, timeNow, timeNow]
 

@@ -62,30 +62,6 @@ emoji : typing.Dict[str, str] = {
 
 class Mods():
     def __init__(self) -> None:
-        # self.status : typing.Dict[str, bool] = {
-        #     "nosanc" : False, 
-        #     "dart" : False,
-        #     "barrage" : False,
-        #     "laser" : False,
-        #     "dual_laser" : False,
-        #     "mass" : False,
-        #     "batt" : False,
-        #     "omega_shield" : False,
-        #     "passive_shield" : False,
-        #     "suppress" : False,
-        #     "unity" : False,
-        #     "emp" : False,
-        #     "rse" : False,
-        #     "tw" : False,
-        #     "bond" : False,
-        #     "veng" : False,
-        #     "destiny" : False,
-        #     "remote" : False,
-        #     "alpha_drone" : False,
-        #     "mining_drone" : False,
-        #     "tele" : False,
-        #     "solo1" : False,
-        #     "solo2" : False}
         self.status : typing.Dict[str, bool] = {}
         self.buildRSModDict()
         self.guild : Guild = None
@@ -103,14 +79,6 @@ class Mods():
                 s += emoji[key]  
         return s
     
-    # def sortDictByKey(self):
-    #     sortedDict = {}
-    #     sorted_keys = sorted(self.status.keys())
-        
-    #     for key in sorted_keys:
-    #         sortedDict[key] = self.status[key]
-            
-    #     self.status = sortedDict
     def sortDictByKey(self):
         sortedDict = {}
         for i in range(len(rsmod_order)):
