@@ -5,138 +5,31 @@ if __name__ == '__main__':
 
 from botSystem import BUILD_TYPE
 
-import asyncio
+#import asyncio
 import discord
-from discord.ext import commands, tasks
+#from discord.ext import commands, tasks
 from discord.ui import Button, View
 from datetime import datetime, timedelta
+from enum import Enum
+
+
+
+import typing
+import pprint
+#import time
 
 from mongodb import Mongodb
-import pprint
-from enum import Enum
-import typing
-import time
+from rsbot_logger import rslog
+from emoji import Mods, emoji
+from cogs.RSQueue.UserInfo import UserInfo, GuestInfo, MemberInfo
 
-from emoji import Mods
-class QueueStatus(Enum):
-        QUEUE_AVAILABLE = 1,
-        QUEUE_COMPLETE = 2,
-        QUEUE_FULL = 3,
-        QUEUE_ERROR = 4
-
-# STALE_QUEUE_PERIOD = 2 # mins
-# STALE_REACT_TIMEOUT = 1 # mins
-    
-if BUILD_TYPE == BUILD_TYPE.MANUAL_TESTING:
-    STALE_QUEUE_PERIOD = 1 # mins
-    STALE_REACT_TIMEOUT = 1 # mins
-elif (BUILD_TYPE == BUILD_TYPE.UNIT_TESTING or BUILD_TYPE == BUILD_TYPE.RELEASE):
-    STALE_QUEUE_PERIOD = 30 # mins
-    STALE_REACT_TIMEOUT = 5 # mins
-
-class MemberInfo():
-    def __init__(self, name : str, userId : int, queue : str = "", guildId : int = None, croid : bool = False):
-        current_time = self.now()
-        # Database Stored Information
-        self.name : str = name
-        self.userId : int = userId
-        self.guildId : int = guildId
-        self.runs = {}
-        self.runs[queue.__str__()] = 0
-        self.croid : bool = croid
-        self.rsModString = ""
-        self.rsMods : Mods = Mods()
-        
-        self.databaseId = None
-
-        self.queue = queue.__str__()
-        self.timeInQueue : datetime = current_time # for ease of testing
-        self.timeSinceLastQueueActivity : datetime = current_time # for ease of testing
-        self.isStalechecking = False
-        self.staleMessage = None #TODO: can this be removed
-
-        self.db = Mongodb()
-        self.db.setCollection('Account')
-        self.searchKey = {'userId': self.userId}
-        result = self.db.findRecord('Account', self.searchKey)
-
-        #initalise the queue
-        if result == None:
-            if self.userId != None and self.name != None:
-                upsert_result = self.db.updateOne('Account', 
-                    self.searchKey, 
-                        {'userId' : self.userId,
-                        'userName' : self.name,
-                        'guildId' : self.guildId,
-                        'runs' : self.runs,
-                        'rsModString' : self.rsModString,
-                        'rsMods' : self.rsMods.status} )
-                self.databaseId = upsert_result.upserted_id
-            elif self.name == None:
-                # No Record found in DB and no config data to write
-                pass
-        else:
-            # We have a record from DB so populate it
-            self.databaseId = result['_id']
-            self.guildId = result['guildId']
-            #self.name = result['userName']
-            self.userId = result['userId']
-            self.runs = result['runs']
-            if ('rsModString' in result.keys()):
-                self.rsModString = result['rsModString']
-                self.rsMods.status = result['rsMods']
-                self.rsMods.sortDictByKey()
-
-            key = queue.__str__()
-            if (key not in self.runs):
-                # we are joining a queue for the first time but we have a user record
-                self.runs[key] = 0
-
-
-    def getUserInfo(self):
-        return {'name': self.name, 'userId': self.userId}
-
-    def addRun(self):
-        self.runs[self.queue] = self.runs[self.queue] + 1
-
-    def UpdateUserRecordInDatabase(self):
-        upsert_result = None
-
-        # current private data valid if we have database Id Key then update record
-        if (self.databaseId != None):
-            upsert_result = self.db.updateOne('Account', 
-                    {'_id': self.databaseId}, 
-                        {'userId' : self.userId,
-                        'userName' : self.name,
-                        'guildId' : self.guildId,
-                        'runs' : self.runs,
-                        'rsModString' : self.rsModString,
-                        'rsMods' : self.rsMods.status} )
-
-        return (upsert_result != None)
-
-    def UpdateUserRSModsInDatabase(self, userId : int, rsmods : Mods):
-        upsert_result = None
-
-        # current private data valid if we have database Id Key then update record
-        if (self.databaseId != None):
-            upsert_result = self.db.updateOne('Account', 
-                    {'_id': self.databaseId}, 
-                        {'userId' : self.userId,
-                        'rsModString' : rsmods.modString(),
-                        'rsMods' : rsmods.status,
-                        'guildId' : rsmods.guild.id} )
-
-        return (upsert_result != None)
-
-
-    def refreshStaleStatus(self):
-        self.staleMessage = None
-        self.isStalechecking = False
-        self.timeSinceLastQueueActivity = self.now()
-        
-    def now(self):
-        return datetime.now()
+#from enum import Enum
+# class QueueStatus(Enum):
+#         QUEUE_AVAILABLE = 1,
+#         QUEUE_COMPLETE = 2,
+#         QUEUE_FULL = 3,
+#         QUEUE_ERROR = 4
+  
 
 class QueueView(View):
     
@@ -146,28 +39,41 @@ class QueueView(View):
     async def join_callback(self, interaction : discord.Interaction, button : discord.ui.Button):
         isEditMessage : bool = False
         username = interaction.user.nick if interaction.user.nick != None else interaction.user.name
+        await interaction.response.edit_message(content="")
         await self.callback.JoinQueue(self.queue, username, interaction.user.id, isEditMessage)
-        await interaction.response.defer()
+        
         
     @discord.ui.button(label="Leave", style=discord.ButtonStyle.red, emoji="<:cross_mark:1056558747520077934>")
     async def leave_callback(self, interaction : discord.Interaction, button : discord.ui.Button):
         username = interaction.user.nick if interaction.user.nick != None else interaction.user.name
+        await interaction.response.edit_message(content="")
         await self.callback.LeaveQueue(self.queue, username, interaction.user.id)
-        await interaction.response.defer()
 
     @discord.ui.button(label="Start", style=discord.ButtonStyle.grey, emoji="🚀")
     async def start_callback(self, interaction : discord.Interaction, button : discord.ui.Button):
         username = interaction.user.nick if interaction.user.nick != None else interaction.user.name
+        await interaction.response.edit_message(content="")
         await self.callback.startQueue(self.queue, username)
-        await interaction.response.defer()
 
+    @discord.ui.button(label="+1 Guest", row=1, style=discord.ButtonStyle.green, emoji=emoji['guest1'])
+    async def addguest_callback(self, interaction : discord.Interaction, button : discord.ui.Button):
+        username = interaction.user.nick if interaction.user.nick != None else interaction.user.name
+        await interaction.response.edit_message(content="")
+        await self.callback.JoinQueue(queueIndex=self.queue, userName=username, userId=interaction.user.id, editMessage=False, croid=False, isGuest=True)
+    
+    @discord.ui.button(label="-1 Guest", row=1, style=discord.ButtonStyle.red, emoji=emoji['guest1'])
+    async def delguest_callback(self, interaction : discord.Interaction, button : discord.ui.Button):
+        username = interaction.user.nick if interaction.user.nick != None else interaction.user.name
+        await interaction.response.edit_message(content="")
+        await self.callback.LeaveQueue(queueIndex=self.queue, userName=username, userId=interaction.user.id, isGuest=True)
+        
     @discord.ui.button(label="", row=1, style=discord.ButtonStyle.green, emoji="<:croid:1032938396353560576>")
     async def addcroid_callback(self, interaction : discord.Interaction, button : discord.ui.Button):
         isCroid : bool = True
         isEditMessage : bool = True
         username = interaction.user.nick if interaction.user.nick != None else interaction.user.name
+        await interaction.response.edit_message(content="")
         await self.callback.JoinQueue(self.queue, username, interaction.user.id, isEditMessage, isCroid)
-        await interaction.response.defer()
         
     def __init__(self, queue : int, timeout: float = 180):
         super().__init__(timeout=timeout)
@@ -178,7 +84,13 @@ class QueueView(View):
         #self.add_item(self.joinButton)
         
    
-   
+class ChangeStatus(Enum):
+        FAIL = 0,
+        MEMBER = 1,
+        GUEST = 2,
+        MEMBER_AND_GUEST = 3,
+        CROID = 4
+    
 class RSQueue:
 
     # Used when starting up to recover previous queue config if any
@@ -207,7 +119,8 @@ class RSQueue:
         self.size = 0
         self.minSinceLastPrint = 0
 
-        self.members : typing.List[MemberInfo] = []
+        #self.members : typing.List[MemberInfo] = []
+        self.members : typing.List[UserInfo] = []
         self.lastQueueMessage : discord.Message = None
         self.view : QueueView = QueueView(queueId, 0)
         QueueView.callback = self.callback
@@ -264,48 +177,94 @@ class RSQueue:
 
         return (upsert_result != None)
 
+    def delGuest(self, userId):
+        for user in self.members:
+            if user.isGuest() and user.userId == userId:
+                self.members.remove(user)
+                self.size -= 1
+                return True
+        return False
+                
     def delUser(self, userName, userId):
+        isSuccess : bool = False
+        usersToRemove = []
+        
         if len(self.members) > 0: # might not need this if - write unit test
             for user in self.members:
                 if user.userId == userId:
+                     usersToRemove.append(user)
+                     isSuccess = True
+            
+            if (len(usersToRemove) > 0):
+                for user in usersToRemove:
                     self.members.remove(user)
-                    self.size -= 1
-                    return True
-        return False
+            
+            self.size = len(self.members)
+        return isSuccess
 
-    def addUser(self, userName, userId, croid : bool = False):
-        
+    def addUser(self, userName, userId, isCroid : bool = False) -> ChangeStatus:
         if len(self.members) < 4:
             
-            # add user to the RS queue
             for user in self.members:
                 if user.userId == userId:
-                    if user.croid == True:
-                        user.croid = False
-                    else:
-                        user.croid = croid
-                    return True
+                    # Already in the Queue
+                    return ChangeStatus.FAIL
 
-            # User not found in queue so add to list
-            user = MemberInfo(name=userName, userId=userId, guildId=self.guildId, queue=self.queueId, croid=croid)
+            user = MemberInfo(name=userName, userId=userId, guildId=self.guildId, queue=self.queueId, croid=isCroid)
             self.members.append(user)
-            self.size += 1
-            return True
+            self.size += 1 # Todo do we need a seperate size?
+            return ChangeStatus.MEMBER
+        return ChangeStatus.FAIL
+    
+    def addGuest(self, inviterUserName, inviterUserId) -> ChangeStatus:
+        guestInviterIndex : int = None
+        if len(self.members) < 4:
+            for i in range(len(self.members)):
+                if self.members[i].userId == inviterUserId:
+                    #we found the guest inviter
+                        guestInviterIndex = i
+                        break
+                    
+            if (guestInviterIndex == None):
+                # if room add user + guest
+                if len(self.members) < 3:
+                    self.addUser(inviterUserName, inviterUserId)
+                    user = GuestInfo(name=inviterUserName, userId=inviterUserId, guildId=self.guildId, queue=self.queueId)
+                    self.members.insert(len(self.members)+1, user)    
+                    self.size += 1 # Todo do we need a seperate size?
+                    return ChangeStatus.MEMBER_AND_GUEST
+                else:
+                    # just add the user
+                    self.addUser(inviterUserName, inviterUserId)
+                    return ChangeStatus.MEMBER
+            else:
+                # Just add the Guest
+                user = GuestInfo(name=inviterUserName, userId=inviterUserId, guildId=self.guildId, queue=self.queueId)
+                self.members.insert(guestInviterIndex+1, user)
+                self.size += 1 # Todo do we need a seperate size?
+                return ChangeStatus.GUEST
+            
+        return ChangeStatus.FAIL
+    
+    def addCroid(self, userName, userId) -> ChangeStatus:
+        if len(self.members) < 4:
+            for i in range(len(self.members)):
+                if self.members[i].userId == userId:
+                    self.members[i].toggleCroid()
+                    return ChangeStatus.CROID
 
-        elif len(self.members) == 4:
-            # queue full user not added
-            return False
+            # User not in queue so add them with croid status
+            return self.addUser(userName=userName, userId=userId, isCroid=True)
+        return ChangeStatus.FAIL
 
     def getStaleMembers(self):
         staleIds : typing.List[MemberInfo] = []
 
         for user in self.members:
-            t = int((self.now() - user.timeSinceLastQueueActivity).total_seconds())
-            if (t >= STALE_QUEUE_PERIOD * 60) and user.isStalechecking == False:
+            
+            if user.isStale():
                 # collect ids for stale check
                 staleIds.append(user)
-                user.isStalechecking = True
-                user.timeSinceLastQueueActivity = self.now() # advance time so we can timeout react message
         
         if (len(staleIds) == 0):
             # Nothing Stale
@@ -317,12 +276,10 @@ class RSQueue:
         staleIds : typing.List[MemberInfo] = []
 
         for user in self.members:
-            t = int((self.now() - user.timeSinceLastQueueActivity).total_seconds())
-            if (t >= STALE_REACT_TIMEOUT * 60) and user.isStalechecking == True:
+            
+            if user.isReactStale():
                 # collect ids for who timed out
                 staleIds.append(user)
-                user.isStalechecking = False
-                user.timeSinceLastQueueActivity = self.now() # advance time so we can timeout react message
         
         if (len(staleIds) == 0):
             # None timedout Stale
@@ -331,11 +288,26 @@ class RSQueue:
         return staleIds
 
     def getQueueMemberIds(self):
-        names = []
-        for name in self.members:
-            names.append(name.userId)
-        return names
+        userIds = []
+        for user in self.members:
+            if user.isGuest() == False:
+                userIds.append(user.userId)
+        return userIds
 
+    def getQueuedGuests(self) -> str:
+        guests = 0
+        guestStr = ""
+        
+        for user in self.members:
+            if user.isGuest():
+                guests += 1
+                
+        if guests == 0:
+            guestStr = ""
+        else:
+            guestStr = f"{guests}x Guests"
+        return guestStr
+    
     def startqueue(self):
         for member in self.members:
             member.addRun()
@@ -398,14 +370,16 @@ class RSQueue:
         #     name="\u200b")
 
         for i in range(len(self.members)):
-            time_float = (self.now() - self.members[i].timeInQueue).total_seconds() / 60
+            time_float = (self.now() - self.members[i].getTimeInQueue()).total_seconds() / 60
             time = int(time_float)
 
-            runs = self.members[i].runs
-            key = queue.__str__()
-            run_value = runs[queue.__str__()]
-            usersStrings += f"{i+1}. `{self.members[i].name}` {self.members[i].rsModString} [{run_value} runs] 🕒 {time} min"
-            if (self.members[i].croid):
+            # runs = self.members[i].runs
+            # key = queue.__str__()
+            # run_value = runs[queue.__str__()]
+            run_value = self.members[i].getRuns(queue)
+            
+            usersStrings += f"{i+1}. `{self.members[i].getName()}` {self.members[i].rsModString} [{run_value} runs] 🕒 {time} min"
+            if (self.members[i].isCroid()):
                 usersStrings += " <:croid:1032938396353560576>\n"
             else:
                 usersStrings += "\n"
