@@ -13,7 +13,7 @@ from mongodb import Mongodb
 import pprint
 from enum import Enum
 import typing
-from cogs.RSQueue.RSQueueData import RSQueue
+from cogs.RSQueue.RSQueueData import RSQueue, ChangeStatus
 from cogs.RSQueue.UserInfo import MemberInfo
 
 from rsbot_logger import rslog
@@ -296,10 +296,15 @@ class RSQueueManager(commands.Cog, name="RS Queue"):
             pass
 
     async def JoinQueue(self, queueIndex : int, userName : str, userId : int, editMessage : bool = False, croid : bool = False, isGuest : bool = False):
-        
         rslog.info(f'JoinQueue RS{queueIndex} by {userName}')
-        
-        success : bool = RSQueueManager.qs[queueIndex].addUser(userName, userId, croid, isGuest)
+        success : ChangeStatus = ChangeStatus.FAIL
+        if (isGuest):
+            success = RSQueueManager.qs[queueIndex].addGuest(userName, userId)    
+        elif (croid):
+            success = RSQueueManager.qs[queueIndex].addCroid(userName, userId)
+        else:
+            success = RSQueueManager.qs[queueIndex].addUser(userName, userId)
+            
         if (success):
             # added user to queue
 
@@ -321,10 +326,12 @@ class RSQueueManager(commands.Cog, name="RS Queue"):
             elif (editMessage == False): 
                 # ping queue role of queue addition
                 role = guild.get_role(q.roleId)
-                if isGuest:
+                if success == ChangeStatus.GUEST:
                     await channel.send(f'**{userName}** joined a guest to {role.mention} Queue ({len(q.members)}/4)')
-                else:
+                elif success == ChangeStatus.MEMBER:
                     await channel.send(f'**{userName}** joined {role.mention} Queue ({len(q.members)}/4)')
+                elif success == ChangeStatus.MEMBER_AND_GUEST:
+                    await channel.send(f'**{userName}** joined with guest {role.mention} Queue ({len(q.members)}/4)')
         else:
             #log error
             pass

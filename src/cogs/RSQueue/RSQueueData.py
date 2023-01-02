@@ -10,7 +10,7 @@ import discord
 #from discord.ext import commands, tasks
 from discord.ui import Button, View
 from datetime import datetime, timedelta
-
+from enum import Enum
 
 
 
@@ -84,7 +84,13 @@ class QueueView(View):
         #self.add_item(self.joinButton)
         
    
-   
+class ChangeStatus(Enum):
+        FAIL = 0,
+        MEMBER = 1,
+        GUEST = 2,
+        MEMBER_AND_GUEST = 3,
+        CROID = 4
+    
 class RSQueue:
 
     # Used when starting up to recover previous queue config if any
@@ -196,53 +202,60 @@ class RSQueue:
             self.size = len(self.members)
         return isSuccess
 
-    # TODO: Clean up this method
-    def addUser(self, userName, userId, croid : bool = False, isGuest : bool = False):
-        guestInviterIndex : int = None
-        
+    def addUser(self, userName, userId, isCroid : bool = False) -> ChangeStatus:
         if len(self.members) < 4:
             
-            # add user to the RS queue
-            #for user in self.members:
+            for user in self.members:
+                if user.userId == userId:
+                    # Already in the Queue
+                    return ChangeStatus.FAIL
+
+            user = MemberInfo(name=userName, userId=userId, guildId=self.guildId, queue=self.queueId, croid=isCroid)
+            self.members.append(user)
+            self.size += 1 # Todo do we need a seperate size?
+            return ChangeStatus.MEMBER
+        return ChangeStatus.FAIL
+    
+    def addGuest(self, inviterUserName, inviterUserId) -> ChangeStatus:
+        guestInviterIndex : int = None
+        if len(self.members) < 4:
             for i in range(len(self.members)):
-                if isGuest == False:
-                    if self.members[i].userId == userId:
-                        if croid:
-                            self.members[i].croid = not self.members[i].croid
-                        return True
-                else: # we are adding a guest
-                    if self.members[i].userId == userId:
-                        #we found the guest inviter
+                if self.members[i].userId == inviterUserId:
+                    #we found the guest inviter
                         guestInviterIndex = i
                         break
                     
-            if (guestInviterIndex == None and isGuest):
-                # inviter of guest not currently in queue
-                guestInviterIndex = len(self.members)
+            if (guestInviterIndex == None):
+                # if room add user + guest
                 if len(self.members) < 3:
-                    user = MemberInfo(name=userName, userId=userId, guildId=self.guildId, queue=self.queueId, croid=croid)
-                    self.members.append(user)    
-                    user = GuestInfo(name=userName, userId=userId, guildId=self.guildId, queue=self.queueId)
-                    self.members.insert(guestInviterIndex+1, user)    
-                    self.size += 2 # Todo do we need a seperate size?
+                    self.addUser(inviterUserName, inviterUserId)
+                    user = GuestInfo(name=inviterUserName, userId=inviterUserId, guildId=self.guildId, queue=self.queueId)
+                    self.members.insert(len(self.members)+1, user)    
+                    self.size += 1 # Todo do we need a seperate size?
+                    return ChangeStatus.MEMBER_AND_GUEST
                 else:
-                    user = MemberInfo(name=userName, userId=userId, guildId=self.guildId, queue=self.queueId, croid=croid)
-                    self.members.append(user)
-                    self.size += 1 # Todo do we need a seperate size?    
-            elif (isGuest == False):
-                user = MemberInfo(name=userName, userId=userId, guildId=self.guildId, queue=self.queueId, croid=croid)
-                self.members.append(user)
-                self.size += 1 # Todo do we need a seperate size?
+                    # just add the user
+                    self.addUser(inviterUserName, inviterUserId)
+                    return ChangeStatus.MEMBER
             else:
-                user = GuestInfo(name=userName, userId=userId, guildId=self.guildId, queue=self.queueId)
+                # Just add the Guest
+                user = GuestInfo(name=inviterUserName, userId=inviterUserId, guildId=self.guildId, queue=self.queueId)
                 self.members.insert(guestInviterIndex+1, user)
                 self.size += 1 # Todo do we need a seperate size?
+                return ChangeStatus.GUEST
             
-            return True
+        return ChangeStatus.FAIL
+    
+    def addCroid(self, userName, userId) -> ChangeStatus:
+        if len(self.members) < 4:
+            for i in range(len(self.members)):
+                if self.members[i].userId == userId:
+                    self.members[i].toggleCroid()
+                    return ChangeStatus.CROID
 
-        elif len(self.members) == 4:
-            # queue full user not added
-            return False
+            # User not in queue so add them with croid status
+            return self.addUser(userName=userName, userId=userId, isCroid=True)
+        return ChangeStatus.FAIL
 
     def getStaleMembers(self):
         staleIds : typing.List[MemberInfo] = []
@@ -366,7 +379,7 @@ class RSQueue:
             run_value = self.members[i].getRuns(queue)
             
             usersStrings += f"{i+1}. `{self.members[i].getName()}` {self.members[i].rsModString} [{run_value} runs] 🕒 {time} min"
-            if (self.members[i].croid):
+            if (self.members[i].isCroid()):
                 usersStrings += " <:croid:1032938396353560576>\n"
             else:
                 usersStrings += "\n"

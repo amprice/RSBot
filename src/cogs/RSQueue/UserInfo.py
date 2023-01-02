@@ -66,6 +66,14 @@ class UserInfo():
         rslog.debug("UserInfo.isReactStale()")
         return False
     
+    def isCroid(self) -> bool:
+        rslog.debug("UserInfo.isCroid()")
+        return False
+    
+    def toggleCroid(self) -> bool:
+        rslog.debug("UserInfo.toggleCroid()")
+        return False
+    
     def now(self):
         rslog.error("UserInfo.now()")
         return None
@@ -237,6 +245,15 @@ class MemberInfo(UserInfo):
             self.timeSinceLastQueueActivity = self.now() # advance time so we can timeout react message
             return True
         return False
+    
+    def isCroid(self) -> bool:
+        rslog.debug("MemberInfo.isCroid()")
+        return self.croid
+    
+    def toggleCroid(self) -> bool:
+        rslog.debug("MemberInfo.toggleCroid()")
+        self.croid = not self.croid
+        return self.croid
     
     def getTimeInQueue(self) -> datetime:
         rslog.debug("MemberInfo.getTimeInQueue()")
